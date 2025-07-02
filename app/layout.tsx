@@ -4,7 +4,9 @@ import "./globals.css";
 import Navber from "@/components/Navber";
 import Footer from "@/components/Footer";
 
-const layout = ({children}) => {
+import { ReactNode } from "react";
+
+const layout = ({ children }: { children: ReactNode }) => {
   return (
     <html >
       <body >

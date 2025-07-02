@@ -44,7 +44,7 @@ const Footer = () => {
         <hr className="border-gray-700 my-8"/>
 
         <div className="text-center text-gray-400 text-sm">
-            &copy; 2025 Your Website. All rights reserved.
+            &copy; 2025 RUS-Learning. All rights reserved.
         </div>
     </div>
 </footer>
