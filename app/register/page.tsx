@@ -99,7 +99,7 @@ const Register = () => {
             />
           </div>
 
-          <button type="submit" className="w-full bg-indigo-600 text-white py-2.5 rounded-lg">
+          <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-full">
             ลงทะเบียน
           </button>
         </form>

@@ -53,7 +53,7 @@ const Navber = () => {
         </div>
         <div>
             <Link href="/login">
-                <button className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200">
+                <button className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200">
                     Login
                 </button>
             </Link>

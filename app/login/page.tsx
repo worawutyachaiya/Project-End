@@ -60,14 +60,14 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="w-full bg-indigo-600 text-white py-2.5 rounded-lg">
+          <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-full">
             Sign In
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
           ยังไม่มีบัญชี?
-          <a href="/register" className="text-indigo-600 hover:text-indigo-500 font-medium pl-1">สมัครสมาชิก</a>
+          <a href="/register" className="text-amber-600 hover:text-abmer-500 font-medium pl-1">สมัครสมาชิก</a>
         </div>
       </div>
     </div>

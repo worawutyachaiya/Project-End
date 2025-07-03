@@ -11,13 +11,8 @@ const layout = ({ children }: { children: ReactNode }) => {
     <html >
       <body >
         <Navber />
-
-        
-        
-
         {children}
-    
-      <Footer/>
+        <Footer/>
       </body>
     </html>
   )

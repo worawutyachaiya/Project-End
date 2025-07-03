@@ -1,6 +1,5 @@
 import Card from "@/components/Carditem"
-import Footer from "@/components/Footer"
-
+import News from "@/components/News"
 const page = () => {
   return (
     <>
@@ -9,24 +8,9 @@ const page = () => {
         <img src="https://placehold.co/2000x600"  alt="" />
       </div>
     </header>
-
-    <section className="bg-black ">
-      <div className="container py-10">
-        <div className="flex flex-wrap gap-4 justify-center">
-          <img src="https://placehold.co/150x50" alt="" />
-          <img src="https://placehold.co/150x50" alt="" />
-          <img src="https://placehold.co/150x50" alt="" />
-
-        </div>
-      </div>
-    </section>
-
+    <h2 className="text-4xl sm:text-5xl font-bold text-center mt-12">คอร์สเรียน</h2>
     <Card/>
-    
-    
-
-    
-
+    <News/>
     </>
   )
 }
