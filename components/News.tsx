@@ -28,6 +28,24 @@ const news = [
     description: 'ไม่มีข่าวสารในปัจจุบัน',
     image: '/images/news1.png',
 },
+{
+    title: 'รออัปเดต',
+    date: '7 กรกฎาคม 2568',
+    description: 'ไม่มีข่าวสารในปัจจุบัน',
+    image: '/images/news1.png',
+},
+{
+    title: 'รออัปเดต',
+    date: '7 กรกฎาคม 2568',
+    description: 'ไม่มีข่าวสารในปัจจุบัน',
+    image: '/images/news1.png',
+},
+{
+    title: 'รออัปเดต',
+    date: '7 กรกฎาคม 2568',
+    description: 'ไม่มีข่าวสารในปัจจุบัน',
+    image: '/images/news1.png',
+}
 ]
 
 export default function NewsSection() {
@@ -44,16 +62,16 @@ const scroll = (direction: 'left' | 'right') => {
 
 return (
     <section className="flex flex-col items-center bg-white py-10">
-    <div className="w-full max-w-7xl px-4">
-        <div className="flex flex-col md:flex-row items-center md:items-start">
+    <div className="w-full max-w-4xl px-3">
+        <div className="flex flex-col items-center md:items-center">
           {/* ✅ ฝั่งซ้าย - พื้นหลังชมพู */}
-        <div className="w-full md:w-1/3 mb-6 md:mb-0 bg-amber-400 text-white p-8 rounded-2xl text-center md:text-left">
+        <div className="w-full md:w-1/3 mb-6 bg-amber-400 text-white p-5 rounded-2xl text-center md:text-center">
             <h2 className="text-3xl font-bold">ข่าวสาร</h2>
             <p className="text-xl">และบทความ</p>
         </div>
 
           {/* ✅ ฝั่งขวา - Scroll แนวนอน */}
-        <div className="w-full md:w-2/1 overflow-x-auto">
+        <div className="max-w-7xl md:w-2/1 overflow-x-auto">
             <div
             ref={scrollRef}
             className="flex space-x-6 overflow-x-auto scroll-smooth"
