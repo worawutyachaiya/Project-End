@@ -55,7 +55,7 @@ const Register = () => {
               name="firstName"
               type="text"
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -65,7 +65,7 @@ const Register = () => {
               name="lastName"
               type="text"
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -75,7 +75,7 @@ const Register = () => {
               name="studentId"
               type="text"
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -85,7 +85,7 @@ const Register = () => {
               name="password"
               type="password"
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
@@ -95,7 +95,7 @@ const Register = () => {
               name="confirmPassword"
               type="password"
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
 

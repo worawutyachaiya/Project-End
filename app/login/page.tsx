@@ -45,7 +45,7 @@ const Login = () => {
               type="text"
               value={form.studentId}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black"
             />
           </div>
 
@@ -56,7 +56,7 @@ const Login = () => {
               type="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg"
+              className="w-full px-4 py-2 border rounded-lg text-black"
             />
           </div>
 
@@ -67,7 +67,7 @@ const Login = () => {
 
         <div className="mt-6 text-center text-sm text-gray-600">
           ยังไม่มีบัญชี?
-          <a href="/register" className="text-amber-600 hover:text-abmer-500 font-medium pl-1">สมัครสมาชิก</a>
+          <a href="/register" className="text-amber-600 hover:text-amber-500 font-medium pl-1">สมัครสมาชิก</a>
         </div>
       </div>
     </div>
