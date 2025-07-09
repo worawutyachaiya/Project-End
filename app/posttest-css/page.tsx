@@ -64,7 +64,7 @@ export default function QuizPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-8">
+    <div className="min-h-screen flex flex-col items-center p-8">
       <main className="flex-1 w-full max-w-3xl bg-white p-8 mt-8 border rounded-xl text-black">
         <h2 className="text-center text-xl font-semibold mb-6">ข้อสอบหลังเรียน-CSS</h2>
         <form onSubmit={handleSubmit} className="space-y-8">
