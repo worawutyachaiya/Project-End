@@ -2,34 +2,34 @@
 import { useState } from "react";
 
 export default function Home() {
-    const [videoSrc, setVideoSrc] = useState("https://www.youtube.com/embed/dQw4w9WgXcQ");
-    const [videoTitle, setVideoTitle] = useState("บทที่ 1: บทนำ");
+    const [videoSrc, setVideoSrc] = useState("");
+    const [videoTitle, setVideoTitle] = useState("แนะนําเนื้อหา");
 
     const lessons = [
         {
         title: "บทที่ 1: บทนำ",
-        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        url: "",
         },
         {
         title: "บทที่ 2: แนวคิดสำคัญ",
-        url: "https://www.youtube.com/embed/tgbNymZ7vqY",
+        url: "",
         },
         {
         title: "บทที่ 3: ตัวอย่างการใช้งาน",
-        url: "https://www.youtube.com/embed/xvFZjo5PgG0",
+        url: "",
         },
         {
         title: "บทที่ 4: สรุปบทเรียน",
-        url: "https://www.youtube.com/embed/kJQP7kiw5Fk",
+        url: "",
         },
         {
         title: "บทที่ 5: แบบทดสอบ",
-        url: "https://www.youtube.com/embed/9bZkp7q19f0",
+        url: "",
         },
     ];
 
     return (
-        <div className="min-h-screen bg-gray-100 p-4 flex flex-col md:flex-row gap-4">
+        <div className="min-h-screen bg-gray-100 p-4 flex flex-col md:flex-row gap-4" style={{ backgroundImage: "url('/img/bg-green.jpg')" }}>
         {/* Main Content */}
         <div className="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
             {/* Video */}
