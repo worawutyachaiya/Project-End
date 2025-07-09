@@ -64,7 +64,7 @@ return (
                 </li>
                 <li>
                 <Link
-                    href="/"
+                    href="/about"
                     className="block py-2 hover:text-teal-700 transition-colors duration-200" // เปลี่ยนสีโฮเวอร์
                 >
                     เกี่ยวกับเรา
