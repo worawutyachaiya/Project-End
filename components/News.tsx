@@ -8,43 +8,43 @@ const news = [
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 },
 {
     title: 'รออัปเดต',
     date: '7 กรกฎาคม 2568',
     description: 'ไม่มีข่าวสารในปัจจุบัน',
-    image: '/images/news1.png',
+    image: '/img/html5.png',
 }
 ]
 
