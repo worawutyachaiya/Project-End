@@ -6,13 +6,13 @@ import { useState } from "react"; // นำเข้า useState เพื่อ
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false); // สถานะสำหรับเปิด/ปิดเมนูมือถือ
 
-return (
-        <nav className="bg-white bg-opacity-70 backdrop-blur-sm text-gray-700 p-4 rounded-xl shadow-lg m-4"> {/* ปรับพื้นหลัง navbar และสีข้อความหลัก */}
-        <div className="container mx-auto flex justify-between items-center flex-wrap">
-            {/* Logo */}
-            <div>
-            <h1 className="text-2xl font-bold text-teal-700">Logo</h1> {/* เปลี่ยนสี Logo */}
-            </div>
+  return (
+    <nav className="bg-white bg-opacity-70 backdrop-blur-sm text-gray-700 p-4 rounded-xl shadow-lg m-4"> {/* ปรับพื้นหลัง navbar และสีข้อความหลัก */}
+      <div className="container mx-auto flex justify-between items-center flex-wrap">
+        {/* Logo */}
+        <div>
+          <h1 className="text-2xl font-bold text-teal-700">Logo</h1> {/* เปลี่ยนสี Logo */}
+        </div>
 
             {/* Hamburger Icon สำหรับมือถือ */}
             <div className="block lg:hidden">
