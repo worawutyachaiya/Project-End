@@ -44,7 +44,7 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4" style={{ backgroundImage: "url('/img/bg-green.jpg')", backgroundSize: "cover", backgroundAttachment: "fixed" }}>
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Register</h2>
 
@@ -99,7 +99,7 @@ const Register = () => {
             />
           </div>
 
-          <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-full">
+          <button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 font-semibold text-white py-2.5 rounded-full">
             ลงทะเบียน
           </button>
         </form>

@@ -1,20 +1,22 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Navber from "@/components/Navber";
+// app/layout.tsx
+
+import Navbar from "@/components/Navber";
 import Footer from "@/components/Footer";
+import "./globals.css"; // ตรวจสอบให้แน่ใจว่า path ถูกต้อง
 
 import { ReactNode } from "react";
 
-const layout = ({ children }: { children: ReactNode }) => {
+const RootLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <html >
-      <body >
-        <Navber />
+    <html>
+      {/* กำหนด Background Image ให้กับ <body> ตรงนี้ */}
+      <body style={{ backgroundImage: "url('/img/bg-green.jpg')", backgroundSize: "cover", backgroundAttachment: "fixed" }}>
+      <Navbar/>
         {children}
-        <Footer/>
+      <Footer/>
       </body>
     </html>
   )
 }
-export default layout
+
+export default RootLayout;

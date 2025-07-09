@@ -33,7 +33,7 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4" style={{ backgroundImage: "url('/img/bg-green.jpg')", backgroundSize: "cover", backgroundAttachment: "fixed" }}>
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
 
@@ -60,14 +60,14 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-full">
+          <button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold  py-2.5 rounded-full">
             Sign In
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
           ยังไม่มีบัญชี?
-          <a href="/register" className="text-amber-600 hover:text-amber-500 font-medium pl-1">สมัครสมาชิก</a>
+          <a href="/register" className="text-teal-600 hover:text-teal-700   font-medium pl-1">สมัครสมาชิก</a>
         </div>
       </div>
     </div>
