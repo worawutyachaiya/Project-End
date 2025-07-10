@@ -94,14 +94,6 @@ export default function AdminVideoPage() {
               className="w-full border px-4 py-2 rounded text-black"
             />
             <input
-              type="text"
-              name="uri"
-              placeholder="URI วิดีโอ"
-              value={form.uri}
-              onChange={handleChange}
-              className="w-full border px-4 py-2 rounded text-black"
-            />
-            <input
               type="file"
               name="image"
               accept="image/*"
