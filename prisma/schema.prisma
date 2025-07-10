@@ -15,3 +15,16 @@ model User {
   password  String
   createdAt DateTime @default(now())
 }
+
+model Video {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  videoUrl    String   // URL from Cloudinary
+  imageUrl    String?  // Cover image URL from Cloudinary
+  publicId    String   // Cloudinary public ID for deletion
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("videos")
+}
