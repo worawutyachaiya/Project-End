@@ -1,17 +1,19 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+// next.config.ts
+import { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  // ย้าย serverComponentsExternalPackages มาเป็น serverExternalPackages
+  serverExternalPackages: ['@prisma/client', 'bcrypt'],
+  
+  // ลบ experimental.api ออก (ไม่จำเป็นสำหรับ Next.js 13+)
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
+    // เก็บเฉพาะ experimental features ที่จำเป็น
   },
+  
+  // เพิ่ม configuration อื่นๆ ที่จำเป็น
   images: {
-    domains: ['img.youtube.com'], // สำหรับ YouTube thumbnails
-  },
-  // เพิ่มการกำหนดค่าสำหรับ file upload
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
+    domains: ['localhost'],
   },
 }
 
-module.exports = nextConfig
+export default nextConfig

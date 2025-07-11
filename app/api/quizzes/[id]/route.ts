@@ -1,23 +1,22 @@
-// app/api/admin/quizzes/[id]/route.ts
+// app/api/quizzes/[id]/route.ts (สำหรับ PUT และ DELETE)
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: paramId } = await params
-    const id = parseInt(paramId)
-    const body = await request.json()
-    const { questionType, question, choices, correct, score, phase } = body
-
+    const id = parseInt(params.id)
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'ID ไม่ถูกต้อง' },
         { status: 400 }
       )
     }
+
+    const body = await request.json()
+    const { questionType, question, choices, correct, score, phase } = body
 
     // Validate required fields
     if (!questionType || !question || !choices || !correct || !score || !phase) {
@@ -27,19 +26,15 @@ export async function PUT(
       )
     }
 
-    // Check if quiz exists
-    const existingQuiz = await prisma.quiz.findUnique({
-      where: { id }
-    })
-
-    if (!existingQuiz) {
+    // Validate choices array
+    if (!Array.isArray(choices) || choices.length !== 4 || choices.some(c => !c.trim())) {
       return NextResponse.json(
-        { error: 'ไม่พบข้อสอบที่ต้องการแก้ไข' },
-        { status: 404 }
+        { error: 'ตัวเลือกคำตอบต้องมี 4 ข้อและไม่ว่างเปล่า' },
+        { status: 400 }
       )
     }
 
-    const updatedQuiz = await prisma.quiz.update({
+    const quiz = await prisma.quiz.update({
       where: { id },
       data: {
         questionType,
@@ -51,7 +46,7 @@ export async function PUT(
       }
     })
 
-    return NextResponse.json(updatedQuiz)
+    return NextResponse.json(quiz)
   } catch (error) {
     console.error('Error updating quiz:', error)
     return NextResponse.json(
@@ -63,28 +58,14 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: paramId } = await params
-    const id = parseInt(paramId)
-
+    const id = parseInt(params.id)
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'ID ไม่ถูกต้อง' },
         { status: 400 }
-      )
-    }
-
-    // Check if quiz exists
-    const existingQuiz = await prisma.quiz.findUnique({
-      where: { id }
-    })
-
-    if (!existingQuiz) {
-      return NextResponse.json(
-        { error: 'ไม่พบข้อสอบที่ต้องการลบ' },
-        { status: 404 }
       )
     }
 
