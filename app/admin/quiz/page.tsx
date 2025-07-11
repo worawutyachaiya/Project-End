@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type QuizItem = {
   id: number;
@@ -10,15 +10,17 @@ type QuizItem = {
   correct: string;
   score: string;
   phase: "pre" | "post";
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function AdminQuizPage() {
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<QuizItem | null>(null);
-  
+
   const [form, setForm] = useState<QuizItem>({
     id: 0,
     questionType: "HTML",
@@ -28,6 +30,32 @@ export default function AdminQuizPage() {
     score: "",
     phase: "pre",
   });
+
+  // Fetch quizzes on component mount
+  useEffect(() => {
+    fetchQuizzes();
+  }, []);
+
+  const fetchQuizzes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await fetch("/api/quizzes");
+      if (!response.ok) {
+        throw new Error("Failed to fetch quizzes");
+      }
+
+      const data = await response.json();
+      setQuizzes(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการโหลดข้อมูล"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -61,7 +89,7 @@ export default function AdminQuizPage() {
     if (
       !form.questionType ||
       !form.question ||
-      form.choices.some((c) => !c) ||
+      form.choices.some((c) => !c.trim()) ||
       !form.correct ||
       !form.score ||
       !form.phase
@@ -74,28 +102,46 @@ export default function AdminQuizPage() {
       setSubmitting(true);
       setError(null);
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const url = editingQuiz ? `/api/quizzes/${form.id}` : "/api/quizzes";
+
+      const method = editingQuiz ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          questionType: form.questionType,
+          question: form.question,
+          choices: form.choices,
+          correct: form.correct,
+          score: form.score,
+          phase: form.phase,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      }
 
       if (editingQuiz) {
-        // Update existing quiz
-        setQuizzes((prev) =>
-          prev.map((q) => (q.id === form.id ? form : q))
-        );
+        // Update existing quiz in state
+        setQuizzes((prev) => prev.map((q) => (q.id === form.id ? data : q)));
         alert("แก้ไขข้อสอบสำเร็จ");
       } else {
-        // Create new quiz
-        const newQuiz: QuizItem = {
-          ...form,
-          id: Date.now(),
-        };
-        setQuizzes([...quizzes, newQuiz]);
+        // Add new quiz to state
+        setQuizzes((prev) => [data, ...prev]);
         alert("เพิ่มข้อสอบสำเร็จ");
       }
 
       resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการบันทึกข้อมูล"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -111,20 +157,30 @@ export default function AdminQuizPage() {
 
     try {
       setError(null);
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+
+      const response = await fetch(`/api/quizzes/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "เกิดข้อผิดพลาดในการลบข้อมูล");
+      }
+
       setQuizzes((prev) => prev.filter((q) => q.id !== id));
       alert("ลบข้อสอบสำเร็จ");
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการลบข้อมูล');
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการลบข้อมูล"
+      );
     }
   };
 
   const handleLogout = () => {
     if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
       // Handle logout logic here
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
   };
 
@@ -133,8 +189,10 @@ export default function AdminQuizPage() {
       {/* Header */}
       <header className="bg-white/50 backdrop-blur-sm px-6 py-4 flex">
         <div className="w-full flex items-center justify-between gap-4">
-          <span className="border px-4 py-1 rounded-full text-black">Admin</span>
-          <button 
+          <span className="border px-4 py-1 rounded-full text-black">
+            Admin
+          </span>
+          <button
             onClick={handleLogout}
             className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
           >
@@ -149,7 +207,9 @@ export default function AdminQuizPage() {
           <ul className="space-y-2">
             <li className="pl-4 font-bold text-blue-600">จัดการข้อสอบ</li>
             <li className="pl-4">
-              <a href="/admin/video" className="hover:text-blue-600">จัดการวิดีโอ</a>
+              <a href="/admin/video" className="hover:text-blue-600">
+                จัดการวิดีโอ
+              </a>
             </li>
           </ul>
         </aside>
@@ -171,7 +231,9 @@ export default function AdminQuizPage() {
           <div className="space-y-4 max-w-lg">
             {/* ประเภทคำถาม */}
             <div>
-              <label className="block mb-1 font-semibold text-sm text-gray-700">ประเภทคำถาม</label>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                ประเภทคำถาม
+              </label>
               <select
                 name="questionType"
                 value={form.questionType}
@@ -186,7 +248,9 @@ export default function AdminQuizPage() {
 
             {/* ก่อนเรียน/หลังเรียน */}
             <div>
-              <label className="block mb-1 font-semibold text-sm text-gray-700">แบบทดสอบสำหรับ</label>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                แบบทดสอบสำหรับ
+              </label>
               <select
                 name="phase"
                 value={form.phase}
@@ -200,7 +264,9 @@ export default function AdminQuizPage() {
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-sm text-gray-700">คำถาม</label>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                คำถาม
+              </label>
               <input
                 name="question"
                 value={form.question}
@@ -212,7 +278,9 @@ export default function AdminQuizPage() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-sm text-gray-700">ตัวเลือกคำตอบ</label>
+              <label className="block font-semibold mb-1 text-sm text-gray-700">
+                ตัวเลือกคำตอบ
+              </label>
               {form.choices.map((choice, idx) => (
                 <input
                   key={idx}
@@ -227,7 +295,9 @@ export default function AdminQuizPage() {
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-sm text-gray-700">คำตอบที่ถูก</label>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                คำตอบที่ถูก
+              </label>
               <select
                 name="correct"
                 value={form.correct}
@@ -243,7 +313,9 @@ export default function AdminQuizPage() {
             </div>
 
             <div>
-              <label className="block mb-1 font-semibold text-sm text-gray-700">คะแนนข้อสอบ</label>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                คะแนนข้อสอบ
+              </label>
               <input
                 name="score"
                 value={form.score}
@@ -260,7 +332,11 @@ export default function AdminQuizPage() {
                 disabled={submitting}
                 className="bg-black text-white px-6 py-2 rounded disabled:bg-gray-400 hover:bg-gray-800"
               >
-                {submitting ? 'กำลังบันทึก...' : editingQuiz ? 'อัปเดต' : 'เพิ่ม'}
+                {submitting
+                  ? "กำลังบันทึก..."
+                  : editingQuiz
+                  ? "อัปเดต"
+                  : "เพิ่ม"}
               </button>
               {editingQuiz && (
                 <button
@@ -276,44 +352,57 @@ export default function AdminQuizPage() {
 
           {/* ตารางแสดงรายการข้อสอบ */}
           <h2 className="text-lg font-bold mt-10">รายการข้อสอบทั้งหมด</h2>
-          
+
           {loading ? (
             <div className="text-center py-8">กำลังโหลด...</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full mt-4 border text-sm text-left text-black">
+              <table className="w-full mt-4 border text-sm text-black">
                 <thead className="bg-gray-200">
                   <tr>
-                    <th className="border px-2 py-1">ลำดับ</th>
-                    <th className="border px-2 py-1">ประเภท</th>
-                    <th className="border px-2 py-1">ช่วง</th>
-                    <th className="border px-2 py-1">คำถาม</th>
-                    <th className="border px-2 py-1">คำตอบที่ถูก</th>
-                    <th className="border px-2 py-1">คะแนน</th>
-                    <th className="border px-2 py-1">จัดการ</th>
+                    <th className="border px-2 py-1 text-center">ลำดับ</th>
+                    <th className="border px-2 py-1 text-center">ประเภท</th>
+                    <th className="border px-2 py-1 text-center">ช่วง</th>
+                    <th className="border px-2 py-1 text-center">คำถาม</th>
+                    <th className="border px-2 py-1 text-center">
+                      คำตอบที่ถูก
+                    </th>
+                    <th className="border px-2 py-1 text-center">คะแนน</th>
+                    <th className="border px-2 py-1 text-center">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {quizzes.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="border px-2 py-4 text-center text-gray-500">
+                      <td
+                        colSpan={7}
+                        className="border px-2 py-4 text-center text-gray-500"
+                      >
                         ไม่มีข้อมูลข้อสอบ
                       </td>
                     </tr>
                   ) : (
                     quizzes.map((q, idx) => (
                       <tr key={q.id} className="bg-white">
-                        <td className="border px-2 py-1">{idx + 1}</td>
-                        <td className="border px-2 py-1">{q.questionType}</td>
-                        <td className="border px-2 py-1">
+                        <td className="border px-2 py-1 text-center">
+                          {idx + 1}
+                        </td>
+                        <td className="border px-2 py-1 text-center">
+                          {q.questionType}
+                        </td>
+                        <td className="border px-2 py-1 text-center">
                           {q.phase === "pre" ? "ก่อนเรียน" : "หลังเรียน"}
                         </td>
-                        <td className="border px-2 py-1 max-w-xs truncate">{q.question}</td>
-                        <td className="border px-2 py-1">
+                        <td className="border px-2 py-1 text-center max-w-xs truncate">
+                          {q.question}
+                        </td>
+                        <td className="border px-2 py-1 text-center">
                           {q.choices[parseInt(q.correct) - 1]}
                         </td>
-                        <td className="border px-2 py-1">{q.score}</td>
-                        <td className="border px-2 py-1 space-x-2">
+                        <td className="border px-2 py-1 text-center">
+                          {q.score}
+                        </td>
+                        <td className="border px-2 py-1 text-center space-x-2">
                           <button
                             onClick={() => handleEdit(q)}
                             className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"

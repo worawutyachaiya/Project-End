@@ -18,13 +18,26 @@ model User {
 
 model Video {
   id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  videoUrl    String   // URL from Cloudinary
-  imageUrl    String?  // Cover image URL from Cloudinary
-  publicId    String   // Cloudinary public ID for deletion
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  youtubeUrl  String   @db.VarChar(500)
+  image       String?  @db.VarChar(500)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("videos")
+}
+
+model Quiz {
+  id           Int      @id @default(autoincrement())
+  questionType String   @db.VarChar(10) // "HTML" or "CSS"
+  question     String   @db.Text
+  choices      String[] // PostgreSQL array for choices
+  correct      String   @db.VarChar(1) // "1", "2", "3", or "4"
+  score        String   @db.VarChar(10)
+  phase        String   @db.VarChar(10) // "pre" or "post"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("quizzes")
 }

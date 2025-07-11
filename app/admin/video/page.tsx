@@ -7,7 +7,7 @@ interface Video {
   id: number;
   title: string;
   description: string;
-  videoFile: string;
+  youtubeUrl: string;
   image: string;
   createdAt?: string;
   updatedAt?: string;
@@ -16,7 +16,7 @@ interface Video {
 interface VideoForm {
   title: string;
   description: string;
-  videoFile: File | null;
+  youtubeUrl: string;
   image: File | null;
 }
 
@@ -60,6 +60,38 @@ const videoAPI = {
   },
 };
 
+// Helper function to extract YouTube video ID from URL
+const extractYouTubeId = (url: string): string | null => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+    /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+};
+
+// Helper function to validate YouTube URL
+const isValidYouTubeUrl = (url: string): boolean => {
+  return extractYouTubeId(url) !== null;
+};
+
+// Helper function to get YouTube thumbnail URL
+const getYouTubeThumbnail = (videoId: string): string => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+// Helper function to get YouTube embed URL
+const getYouTubeEmbedUrl = (videoId: string): string => {
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
 export default function AdminVideoPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +102,7 @@ export default function AdminVideoPage() {
   const [form, setForm] = useState<VideoForm>({
     title: "",
     description: "",
-    videoFile: null,
+    youtubeUrl: "",
     image: null,
   });
 
@@ -94,7 +126,7 @@ export default function AdminVideoPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
-    if (name === "image" || name === "videoFile") {
+    if (name === "image") {
       setForm({ ...form, [name]: files?.[0] || null });
     } else {
       setForm({ ...form, [name]: value });
@@ -105,29 +137,21 @@ export default function AdminVideoPage() {
     setForm({
       title: "",
       description: "",
-      videoFile: null,
+      youtubeUrl: "",
       image: null,
     });
     setEditingVideo(null);
   };
 
   const handleSubmit = async () => {
-    if (!form.title || !form.description || !form.videoFile) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน รวมทั้งเลือกไฟล์วิดีโอ");
+    if (!form.title || !form.description || !form.youtubeUrl) {
+      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
-    // Check file size (e.g., max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (form.videoFile.size > maxSize) {
-      alert("ไฟล์วิดีโอมีขนาดใหญ่เกินไป (สูงสุด 500MB)");
-      return;
-    }
-
-    // Check file type
-    const allowedTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv'];
-    if (!allowedTypes.includes(form.videoFile.type)) {
-      alert("รองรับเฉพาะไฟล์วิดีโอ: MP4, AVI, MOV, WMV, FLV");
+    // Validate YouTube URL
+    if (!isValidYouTubeUrl(form.youtubeUrl)) {
+      alert("กรุณากรอก YouTube URL ที่ถูกต้อง");
       return;
     }
 
@@ -138,7 +162,8 @@ export default function AdminVideoPage() {
       const formData = new FormData();
       formData.append('title', form.title);
       formData.append('description', form.description);
-      formData.append('videoFile', form.videoFile);
+      formData.append('youtubeUrl', form.youtubeUrl);
+      
       if (form.image) {
         formData.append('image', form.image);
       }
@@ -168,7 +193,7 @@ export default function AdminVideoPage() {
     setForm({
       title: video.title,
       description: video.description,
-      videoFile: null, // Don't set existing video file
+      youtubeUrl: video.youtubeUrl,
       image: null, // Don't set existing image file
     });
   };
@@ -256,25 +281,44 @@ export default function AdminVideoPage() {
             />
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                ไฟล์วิดีโอ (สูงสุด 500MB)
+                YouTube URL
               </label>
               <input
-                type="file"
-                name="videoFile"
-                accept="video/mp4,video/avi,video/mov,video/wmv,video/flv"
+                type="url"
+                name="youtubeUrl"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={form.youtubeUrl}
                 onChange={handleChange}
                 disabled={submitting}
                 className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
               />
-              {form.videoFile && (
-                <p className="text-sm text-gray-600 mt-1">
-                  ไฟล์ที่เลือก: {form.videoFile.name} ({(form.videoFile.size / 1024 / 1024).toFixed(2)} MB)
-                </p>
+              <p className="text-sm text-gray-500 mt-1">
+                รองรับ: youtube.com/watch?v=..., youtu.be/..., youtube.com/embed/...
+              </p>
+              {form.youtubeUrl && isValidYouTubeUrl(form.youtubeUrl) && (
+                <div className="mt-2">
+                  <p className="text-sm text-green-600">✓ URL ถูกต้อง</p>
+                  <div className="mt-2">
+                    <iframe
+                      width="280"
+                      height="158"
+                      src={getYouTubeEmbedUrl(extractYouTubeId(form.youtubeUrl)!)}
+                      title="YouTube video preview"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="rounded"
+                    ></iframe>
+                  </div>
+                </div>
+              )}
+              {form.youtubeUrl && !isValidYouTubeUrl(form.youtubeUrl) && (
+                <p className="text-sm text-red-600 mt-1">✗ URL ไม่ถูกต้อง</p>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                รูปภาพหน้าปก
+                รูปภาพหน้าปก (ถ้าไม่เลือกจะใช้ thumbnail จาก YouTube)
               </label>
               <input
                 type="file"
@@ -317,14 +361,14 @@ export default function AdminVideoPage() {
             <div className="text-center py-8">กำลังโหลด...</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full mt-4 border text-sm text-left text-black">
+              <table className="w-full mt-4 border text-sm text-center text-black">
                 <thead className="bg-gray-200">
                   <tr>
                     <th className="border px-2 py-1">ลำดับ</th>
                     <th className="border px-2 py-1">หัวข้อหลักสูตร</th>
                     <th className="border px-2 py-1">รายละเอียด</th>
                     <th className="border px-2 py-1">รูปหน้าปก</th>
-                    <th className="border px-2 py-1">ไฟล์วิดีโอ</th>
+                    <th className="border px-2 py-1">YouTube Video</th>
                     <th className="border px-2 py-1">จัดการ</th>
                   </tr>
                 </thead>
@@ -336,45 +380,59 @@ export default function AdminVideoPage() {
                       </td>
                     </tr>
                   ) : (
-                    videos.map((video, idx) => (
-                      <tr key={video.id} className="bg-white">
-                        <td className="border px-2 py-1">{idx + 1}</td>
-                        <td className="border px-2 py-1">{video.title}</td>
-                        <td className="border px-2 py-1 max-w-xs truncate">{video.description}</td>
-                        <td className="border px-2 py-1">
-                          <img 
-                            src={video.image} 
-                            alt="รูป" 
-                            className="w-16 h-10 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.png';
-                            }}
-                          />
-                        </td>
-                        <td className="border px-2 py-1">
-                          <video 
-                            src={video.videoFile} 
-                            className="w-20 h-12 object-cover"
-                            controls
-                            preload="metadata"
-                          />
-                        </td>
-                        <td className="border px-2 py-1 space-x-2">
-                          <button 
-                            onClick={() => handleEdit(video)}
-                            className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
-                          >
-                            แก้ไข
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(video.id)}
-                            className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
-                          >
-                            ลบ
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    videos.map((video, idx) => {
+                      const videoId = extractYouTubeId(video.youtubeUrl);
+                      const thumbnailUrl = videoId ? getYouTubeThumbnail(videoId) : '';
+                      const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : '';
+                      
+                      return (
+                        <tr key={video.id} className="bg-white">
+                          <td className="border px-2 py-1">{idx + 1}</td>
+                          <td className="border px-2 py-1">{video.title}</td>
+                          <td className="border px-2 py-1 max-w-xs truncate">{video.description}</td>
+                          <td className="border px-2 py-1">
+                            <img 
+                              src={video.image || thumbnailUrl} 
+                              alt="รูป" 
+                              className="w-16 h-10 object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = '/placeholder.png';
+                              }}
+                            />
+                          </td>
+                          <td className="border px-2 py-1">
+                            {embedUrl ? (
+                              <iframe
+                                width="120"
+                                height="68"
+                                src={embedUrl}
+                                title="YouTube video"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="rounded"
+                              ></iframe>
+                            ) : (
+                              <span className="text-red-500">URL ไม่ถูกต้อง</span>
+                            )}
+                          </td>
+                          <td className="border px-2 py-1 space-x-2">
+                            <button 
+                              onClick={() => handleEdit(video)}
+                              className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
+                            >
+                              แก้ไข
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(video.id)}
+                              className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
+                            >
+                              ลบ
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
