@@ -1,145 +1,80 @@
-// app/api/videos/[id]/route.ts
-
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/videos/[id]/route.js
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { writeFile, unlink } from 'fs/promises';
 import path from 'path';
 
 const prisma = new PrismaClient();
 
-// PUT - Update video
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// PUT - อัพเดทวิดีโอ
+export async function PUT(request: { formData: () => any; }, { params }: any) {
   try {
-    const { id: idString } = await params;
-    const id = parseInt(idString);
+    const { id } = await params;
     const formData = await request.formData();
-    
-    const title = formData.get('title') as string;
-    const description = formData.get('description') as string;
-    const youtubeUrl = formData.get('youtubeUrl') as string;
-    const imageFile = formData.get('image') as File | null;
+    const title = formData.get('title');
+    const description = formData.get('description');
+    const youtubeUrl = formData.get('youtubeUrl');
+    const image = formData.get('image');
 
-    // Validate required fields
-    if (!title || !description || !youtubeUrl) {
-      return NextResponse.json(
-        { error: 'Title, description, and YouTube URL are required' },
-        { status: 400 }
-      );
-    }
+    let updateData: {
+      title: any;
+      description: any;
+      youtubeUrl: any;
+      image?: string;
+    } = {
+      title,
+      description,
+      youtubeUrl,
+    };
 
-    // Validate YouTube URL
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    if (!youtubeRegex.test(youtubeUrl)) {
-      return NextResponse.json(
-        { error: 'Invalid YouTube URL' },
-        { status: 400 }
-      );
-    }
-
-    // Get existing video
-    const existingVideo = await prisma.video.findUnique({
-      where: { id }
-    });
-
-    if (!existingVideo) {
-      return NextResponse.json(
-        { error: 'Video not found' },
-        { status: 404 }
-      );
-    }
-
-    let imagePath = existingVideo.image;
-
-    // Handle image upload if provided
-    if (imageFile && imageFile.size > 0) {
-      const bytes = await imageFile.arrayBuffer();
+    // อัพโหลดรูปภาพใหม่ (ถ้ามี)
+    if (image && image.size > 0) {
+      const bytes = await image.arrayBuffer();
       const buffer = Buffer.from(bytes);
-
-      // Create unique filename
-      const filename = `${Date.now()}-${imageFile.name}`;
+      
+      const filename = `${Date.now()}-${image.name}`;
       const filepath = path.join(process.cwd(), 'public/uploads', filename);
       
-      // Save new file
       await writeFile(filepath, buffer);
-      imagePath = `/uploads/${filename}`;
-
-      // Delete old image if exists
-      if (existingVideo.image) {
-        try {
-          const oldFilepath = path.join(process.cwd(), 'public', existingVideo.image);
-          await unlink(oldFilepath);
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
-      }
+      updateData.image = `/uploads/${filename}`;
     }
 
-    // Update video record
     const video = await prisma.video.update({
-      where: { id },
-      data: {
-        title,
-        description,
-        youtubeUrl,
-        image: imagePath,
-      },
+      where: { id: parseInt(id) },
+      data: updateData
     });
 
     return NextResponse.json(video);
   } catch (error) {
-    console.error('Error updating video:', error);
-    return NextResponse.json(
-      { error: 'Failed to update video' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to update video' }, { status: 500 });
   }
 }
 
-// DELETE - Delete video
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// DELETE - ลบวิดีโอ
+export async function DELETE(request: any, { params }: any) {
   try {
-    const { id: idString } = await params;
-    const id = parseInt(idString);
-
-    // Get existing video
-    const existingVideo = await prisma.video.findUnique({
-      where: { id }
+    const { id } = params;
+    
+    // ลบรูปภาพ (ถ้ามี)
+    const video = await prisma.video.findUnique({
+      where: { id: parseInt(id) }
     });
-
-    if (!existingVideo) {
-      return NextResponse.json(
-        { error: 'Video not found' },
-        { status: 404 }
-      );
-    }
-
-    // Delete image file if exists
-    if (existingVideo.image) {
+    
+    if (video?.image) {
+      const filepath = path.join(process.cwd(), 'public', video.image);
       try {
-        const filepath = path.join(process.cwd(), 'public', existingVideo.image);
         await unlink(filepath);
       } catch (error) {
-        console.error('Error deleting image:', error);
+        console.log('Failed to delete image file:', error);
       }
     }
 
-    // Delete video record
     await prisma.video.delete({
-      where: { id }
+      where: { id: parseInt(id) }
     });
 
     return NextResponse.json({ message: 'Video deleted successfully' });
   } catch (error) {
-    console.error('Error deleting video:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete video' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete video' }, { status: 500 });
   }
 }

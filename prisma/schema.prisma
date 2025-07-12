@@ -16,18 +16,6 @@ model User {
   createdAt DateTime @default(now())
 }
 
-model Video {
-  id          Int      @id @default(autoincrement())
-  title       String   @db.VarChar(255)
-  description String   @db.Text
-  youtubeUrl  String   @db.VarChar(500)
-  image       String?  @db.VarChar(500)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("videos")
-}
-
 model Quiz {
   id           Int      @id @default(autoincrement())
   questionType String   @db.VarChar(10) // "HTML" or "CSS"
@@ -52,4 +40,39 @@ model QuizResult {
   percentage  Float    // คะแนนร้อยละ
   answers     String   // JSON string ของคำตอบทั้งหมด
   completedAt DateTime @default(now())
+}
+model Course {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  videos      Video[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("courses")
+}
+
+
+// เพิ่มใน schema.prisma
+model Category {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique
+  videos Video[]
+  
+  @@map("categories")
+}
+
+model Video {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String    @db.Text
+  youtubeUrl  String
+  image       String?
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("videos")
+  Course Course[]
 }
