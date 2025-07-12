@@ -1,7 +1,10 @@
-//app/video/page.tsx
+//app/admin/video/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import RouteGuard from '@/components/routeGuard';
 
 // Types
 interface Video {
@@ -93,7 +96,9 @@ const getYouTubeEmbedUrl = (videoId: string): string => {
   return `https://www.youtube.com/embed/${videoId}`;
 };
 
-export default function AdminVideoPage() {
+function AdminVideoContent() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -212,11 +217,10 @@ export default function AdminVideoPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
-      // Handle logout logic here
-      // e.g., clear session, redirect to login
-      window.location.href = '/login';
+      await logout();
+      router.push('/login');
     }
   };
 
@@ -225,10 +229,15 @@ export default function AdminVideoPage() {
       {/* Header */}
       <header className="bg-white/50 backdrop-blur-sm px-6 py-4 flex">
         <div className="w-full flex items-center justify-between gap-4">
-          <span className="border px-4 py-1 rounded-full text-black">Admin</span>
-          <button 
+          <div className="flex items-center space-x-4">
+            <span className="border px-4 py-1 rounded-full text-black">Admin</span>
+            <span className="text-gray-700">
+              สวัสดี, {user?.firstName} {user?.lastName}
+            </span>
+          </div>
+          <button
             onClick={handleLogout}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
             ออกจากระบบ
           </button>
@@ -240,6 +249,9 @@ export default function AdminVideoPage() {
         {/* Sidebar */}
         <aside className="w-64 bg-white/50 backdrop-blur-sm p-4 shadow text-black">
           <ul className="space-y-2">
+            <li className="pl-4">
+              <a href="/admin/dashboard" className="hover:text-blue-600">Dashboard</a>
+            </li>
             <li className="pl-4">
               <a href="/admin/quiz" className="hover:text-blue-600">จัดการข้อสอบ</a>
             </li>
@@ -442,5 +454,13 @@ export default function AdminVideoPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminVideoPage() {
+  return (
+    <RouteGuard requireAuth={true} requireAdmin={true}>
+      <AdminVideoContent />
+    </RouteGuard>
   );
 }

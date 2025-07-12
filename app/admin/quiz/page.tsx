@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from '@/lib/auth-context';
+import { useRouter } from 'next/navigation';
+import RouteGuard from '@/components/routeGuard';
 
 type QuizItem = {
   id: number;
@@ -14,7 +17,9 @@ type QuizItem = {
   updatedAt?: string;
 };
 
-export default function AdminQuizPage() {
+function AdminQuizContent() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -177,10 +182,10 @@ export default function AdminQuizPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
-      // Handle logout logic here
-      window.location.href = "/login";
+      await logout();
+      router.push('/login');
     }
   };
 
@@ -189,12 +194,17 @@ export default function AdminQuizPage() {
       {/* Header */}
       <header className="bg-white/50 backdrop-blur-sm px-6 py-4 flex">
         <div className="w-full flex items-center justify-between gap-4">
-          <span className="border px-4 py-1 rounded-full text-black">
-            Admin
-          </span>
+          <div className="flex items-center space-x-4">
+            <span className="border px-4 py-1 rounded-full text-black">
+              Admin
+            </span>
+            <span className="text-gray-700">
+              สวัสดี, {user?.firstName} {user?.lastName}
+            </span>
+          </div>
           <button
             onClick={handleLogout}
-            className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800"
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
           >
             ออกจากระบบ
           </button>
@@ -205,6 +215,9 @@ export default function AdminQuizPage() {
         {/* Sidebar */}
         <aside className="w-64 bg-white/50 backdrop-blur-sm p-4 shadow text-black">
           <ul className="space-y-2">
+            <li className="pl-4">
+              <a href="/admin/dashboard" className="hover:text-blue-600">Dashboard</a>
+            </li>
             <li className="pl-4 font-bold text-blue-600">จัดการข้อสอบ</li>
             <li className="pl-4">
               <a href="/admin/video" className="hover:text-blue-600">
@@ -426,5 +439,13 @@ export default function AdminQuizPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminQuizPage() {
+  return (
+    <RouteGuard requireAuth={true} requireAdmin={true}>
+      <AdminQuizContent />
+    </RouteGuard>
   );
 }

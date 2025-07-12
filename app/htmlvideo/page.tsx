@@ -1,6 +1,9 @@
 // app/htmlvideo/page.tsx
 "use client";
 import { useState, useEffect } from "react";
+import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
+import RouteGuard from '@/components/routeGuard'
 
 interface Video {
   id: number;
@@ -11,6 +14,8 @@ interface Video {
 }
 
 export default function HTMLVideoPage() {
+  const { user, logout } = useAuth()
+  const router = useRouter()
   const [videos, setVideos] = useState<Video[]>([]);
   const [videoSrc, setVideoSrc] = useState("");
   const [videoTitle, setVideoTitle] = useState("แนะนําเนื้อหา");
@@ -79,6 +84,11 @@ export default function HTMLVideoPage() {
     return durations[index % durations.length];
   };
 
+  const handleLogout = async () => {
+    await logout()
+    router.push('/login')
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -88,6 +98,7 @@ export default function HTMLVideoPage() {
   }
 
   return (
+    <RouteGuard requireAuth={true}>
     <div className="min-h-screen bg-gray-100 p-4 flex flex-col md:flex-row gap-4" style={{ backgroundImage: "url('/img/bg-green.jpg')" }}>
       <div className="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
         <div className="aspect-video w-full bg-black">
@@ -114,7 +125,12 @@ export default function HTMLVideoPage() {
               {currentVideoIndex + 1} จาก {videos.length} บทเรียน
             </p>
           </div>
-          <button className="text-xl font-bold text-white hover:text-red-300 transition-colors">×</button>
+          <button 
+            onClick={() => router.push('/dashboard')}
+            className="text-xl font-bold text-white hover:text-red-300 transition-colors"
+          >
+            ×
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -195,5 +211,6 @@ export default function HTMLVideoPage() {
         </div>
       </div>
     </div>
+    </RouteGuard>
   );
 }
