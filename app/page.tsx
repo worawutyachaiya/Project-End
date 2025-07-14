@@ -1,3 +1,4 @@
+//app\page.tsx
 import Card from "@/components/Carditem"
 import News from "@/components/News"
 import Link from "next/link"
