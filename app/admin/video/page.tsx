@@ -1,4 +1,4 @@
-//app/admin/video/page.tsx
+// app/admin/video/page.tsx - Updated with lesson and courseType support
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,6 +13,8 @@ interface Video {
   description: string;
   youtubeUrl: string;
   image: string;
+  courseType: string;
+  lesson: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -21,6 +23,8 @@ interface VideoForm {
   title: string;
   description: string;
   youtubeUrl: string;
+  courseType: string;
+  lesson: number;
   image: File | null;
 }
 
@@ -109,6 +113,8 @@ function AdminVideoContent() {
     title: "",
     description: "",
     youtubeUrl: "",
+    courseType: "HTML",
+    lesson: 1,
     image: null,
   });
 
@@ -130,8 +136,8 @@ function AdminVideoContent() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, files } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, files } = e.target as HTMLInputElement;
     if (name === "image") {
       setForm({ ...form, [name]: files?.[0] || null });
     } else {
@@ -144,13 +150,15 @@ function AdminVideoContent() {
       title: "",
       description: "",
       youtubeUrl: "",
+      courseType: "HTML",
+      lesson: 1,
       image: null,
     });
     setEditingVideo(null);
   };
 
   const handleSubmit = async () => {
-    if (!form.title || !form.description || !form.youtubeUrl) {
+    if (!form.title || !form.description || !form.youtubeUrl || !form.courseType || !form.lesson) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
@@ -158,6 +166,12 @@ function AdminVideoContent() {
     // Validate YouTube URL
     if (!isValidYouTubeUrl(form.youtubeUrl)) {
       alert("กรุณากรอก YouTube URL ที่ถูกต้อง");
+      return;
+    }
+
+    // Validate lesson number
+    if (form.lesson < 1 || form.lesson > 10) {
+      alert("บทเรียนต้องอยู่ระหว่าง 1-10");
       return;
     }
 
@@ -169,6 +183,8 @@ function AdminVideoContent() {
       formData.append('title', form.title);
       formData.append('description', form.description);
       formData.append('youtubeUrl', form.youtubeUrl);
+      formData.append('courseType', form.courseType);
+      formData.append('lesson', form.lesson.toString());
       
       if (form.image) {
         formData.append('image', form.image);
@@ -200,6 +216,8 @@ function AdminVideoContent() {
       title: video.title,
       description: video.description,
       youtubeUrl: video.youtubeUrl,
+      courseType: video.courseType || "HTML",
+      lesson: video.lesson || 1,
       image: null, // Don't set existing image file
     });
   };
@@ -274,6 +292,41 @@ function AdminVideoContent() {
 
           {/* Form */}
           <div className="space-y-4 max-w-md">
+            {/* Course Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ประเภทคอร์ส
+              </label>
+              <select
+                name="courseType"
+                value={form.courseType}
+                onChange={handleChange}
+                disabled={submitting}
+                className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
+              >
+                <option value="HTML">HTML</option>
+                <option value="CSS">CSS</option>
+              </select>
+            </div>
+
+            {/* Lesson */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                บทเรียนที่
+              </label>
+              <select
+                name="lesson"
+                value={form.lesson}
+                onChange={handleChange}
+                disabled={submitting}
+                className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>บทเรียนที่ {num}</option>
+                ))}
+              </select>
+            </div>
+
             <input
               type="text"
               name="title"
@@ -378,6 +431,8 @@ function AdminVideoContent() {
                 <thead className="bg-gray-200">
                   <tr>
                     <th className="border px-2 py-1">ลำดับ</th>
+                    <th className="border px-2 py-1">ประเภท</th>
+                    <th className="border px-2 py-1">บทเรียน</th>
                     <th className="border px-2 py-1">หัวข้อหลักสูตร</th>
                     <th className="border px-2 py-1">รายละเอียด</th>
                     <th className="border px-2 py-1">รูปหน้าปก</th>
@@ -388,64 +443,74 @@ function AdminVideoContent() {
                 <tbody>
                   {videos.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="border px-2 py-4 text-center text-gray-500">
+                      <td colSpan={8} className="border px-2 py-4 text-center text-gray-500">
                         ไม่มีข้อมูลวิดีโอ
                       </td>
                     </tr>
                   ) : (
-                    videos.map((video, idx) => {
-                      const videoId = extractYouTubeId(video.youtubeUrl);
-                      const thumbnailUrl = videoId ? getYouTubeThumbnail(videoId) : '';
-                      const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : '';
-                      
-                      return (
-                        <tr key={video.id} className="bg-white">
-                          <td className="border px-2 py-1">{idx + 1}</td>
-                          <td className="border px-2 py-1">{video.title}</td>
-                          <td className="border px-2 py-1 max-w-xs truncate">{video.description}</td>
-                          <td className="border px-2 py-1">
-                            <img 
-                              src={video.image || thumbnailUrl} 
-                              alt="รูป" 
-                              className="w-16 h-10 object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder.png';
-                              }}
-                            />
-                          </td>
-                          <td className="border px-2 py-1">
-                            {embedUrl ? (
-                              <iframe
-                                width="120"
-                                height="68"
-                                src={embedUrl}
-                                title="YouTube video"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                className="rounded"
-                              ></iframe>
-                            ) : (
-                              <span className="text-red-500">URL ไม่ถูกต้อง</span>
-                            )}
-                          </td>
-                          <td className="border px-2 py-1 space-x-2">
-                            <button 
-                              onClick={() => handleEdit(video)}
-                              className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
-                            >
-                              แก้ไข
-                            </button>
-                            <button 
-                              onClick={() => handleDelete(video.id)}
-                              className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
-                            >
-                              ลบ
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    videos
+                      .sort((a, b) => {
+                        // Sort by courseType first, then by lesson
+                        if (a.courseType !== b.courseType) {
+                          return a.courseType.localeCompare(b.courseType);
+                        }
+                        return (a.lesson || 0) - (b.lesson || 0);
+                      })
+                      .map((video, idx) => {
+                        const videoId = extractYouTubeId(video.youtubeUrl);
+                        const thumbnailUrl = videoId ? getYouTubeThumbnail(videoId) : '';
+                        const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : '';
+                        
+                        return (
+                          <tr key={video.id} className="bg-white">
+                            <td className="border px-2 py-1">{idx + 1}</td>
+                            <td className="border px-2 py-1">{video.courseType}</td>
+                            <td className="border px-2 py-1">{video.lesson}</td>
+                            <td className="border px-2 py-1">{video.title}</td>
+                            <td className="border px-2 py-1 max-w-xs truncate">{video.description}</td>
+                            <td className="border px-2 py-1">
+                              <img 
+                                src={video.image || thumbnailUrl} 
+                                alt="รูป" 
+                                className="w-16 h-10 object-cover mx-auto"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/placeholder.png';
+                                }}
+                              />
+                            </td>
+                            <td className="border px-2 py-1">
+                              {embedUrl ? (
+                                <iframe
+                                  width="120"
+                                  height="68"
+                                  src={embedUrl}
+                                  title="YouTube video"
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  className="rounded mx-auto"
+                                ></iframe>
+                              ) : (
+                                <span className="text-red-500">URL ไม่ถูกต้อง</span>
+                              )}
+                            </td>
+                            <td className="border px-2 py-1 space-x-2">
+                              <button 
+                                onClick={() => handleEdit(video)}
+                                className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
+                              >
+                                แก้ไข
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(video.id)}
+                                className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
+                              >
+                                ลบ
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>

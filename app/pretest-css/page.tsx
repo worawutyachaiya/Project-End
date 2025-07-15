@@ -1,12 +1,14 @@
-// app/pretest-css/page.tsx
-import QuizComponent from '@/components/QuizComponent';
+// app/pretest-css/page.tsx - Updated version
+import PretestQuizComponent from '@/components/PretestQuizComponent';
+import RouteGuard from '@/components/routeGuard';
 
 export default function PretestCSSPage() {
   return (
-    <QuizComponent 
-      type="CSS" 
-      phase="pre" 
-      title="ข้อสอบก่อนเรียน-CSS" 
-    />
+    <RouteGuard requireAuth={true}>
+      <PretestQuizComponent 
+        type="CSS" 
+        title="ข้อสอบก่อนเรียน CSS" 
+      />
+    </RouteGuard>
   );
 }

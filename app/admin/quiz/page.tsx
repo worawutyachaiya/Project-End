@@ -1,4 +1,4 @@
-//app/admin/quiz/page.tsx
+// app/admin/quiz/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ type QuizItem = {
   correct: string;
   score: string;
   phase: "pre" | "post";
+  lesson: number;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -33,8 +34,9 @@ function AdminQuizContent() {
     question: "",
     choices: ["", "", "", ""],
     correct: "1",
-    score: "",
+    score: "10",
     phase: "pre",
+    lesson: 1,
   });
 
   // Fetch quizzes on component mount
@@ -47,7 +49,7 @@ function AdminQuizContent() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/quizzes");
+      const response = await fetch("/api/admin/quizzes");
       if (!response.ok) {
         throw new Error("Failed to fetch quizzes");
       }
@@ -85,8 +87,9 @@ function AdminQuizContent() {
       question: "",
       choices: ["", "", "", ""],
       correct: "1",
-      score: "",
+      score: "10",
       phase: "pre",
+      lesson: 1,
     });
     setEditingQuiz(null);
   };
@@ -98,9 +101,15 @@ function AdminQuizContent() {
       form.choices.some((c) => !c.trim()) ||
       !form.correct ||
       !form.score ||
-      !form.phase
+      !form.phase ||
+      !form.lesson
     ) {
       alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+
+    if (form.lesson < 1 || form.lesson > 10) {
+      alert("บทเรียนต้องอยู่ระหว่าง 1-10");
       return;
     }
 
@@ -108,8 +117,7 @@ function AdminQuizContent() {
       setSubmitting(true);
       setError(null);
 
-      const url = editingQuiz ? `/api/quizzes/${form.id}` : "/api/quizzes";
-
+      const url = editingQuiz ? `/api/admin/quizzes/${form.id}` : "/api/admin/quizzes";
       const method = editingQuiz ? "PUT" : "POST";
 
       const response = await fetch(url, {
@@ -124,6 +132,7 @@ function AdminQuizContent() {
           correct: form.correct,
           score: form.score,
           phase: form.phase,
+          lesson: parseInt(form.lesson.toString()),
         }),
       });
 
@@ -134,11 +143,9 @@ function AdminQuizContent() {
       }
 
       if (editingQuiz) {
-        // Update existing quiz in state
         setQuizzes((prev) => prev.map((q) => (q.id === form.id ? data : q)));
         alert("แก้ไขข้อสอบสำเร็จ");
       } else {
-        // Add new quiz to state
         setQuizzes((prev) => [data, ...prev]);
         alert("เพิ่มข้อสอบสำเร็จ");
       }
@@ -164,7 +171,7 @@ function AdminQuizContent() {
     try {
       setError(null);
 
-      const response = await fetch(`/api/quizzes/${id}`, {
+      const response = await fetch(`/api/admin/quizzes/${id}`, {
         method: "DELETE",
       });
 
@@ -277,6 +284,24 @@ function AdminQuizContent() {
               </select>
             </div>
 
+            {/* บทเรียน */}
+            <div>
+              <label className="block mb-1 font-semibold text-sm text-gray-700">
+                บทเรียนที่
+              </label>
+              <select
+                name="lesson"
+                value={form.lesson}
+                onChange={handleChange}
+                disabled={submitting}
+                className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                  <option key={num} value={num}>บทเรียนที่ {num}</option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="block mb-1 font-semibold text-sm text-gray-700">
                 คำถาม
@@ -377,10 +402,9 @@ function AdminQuizContent() {
                     <th className="border px-2 py-1 text-center">ลำดับ</th>
                     <th className="border px-2 py-1 text-center">ประเภท</th>
                     <th className="border px-2 py-1 text-center">ช่วง</th>
+                    <th className="border px-2 py-1 text-center">บทเรียน</th>
                     <th className="border px-2 py-1 text-center">คำถาม</th>
-                    <th className="border px-2 py-1 text-center">
-                      คำตอบที่ถูก
-                    </th>
+                    <th className="border px-2 py-1 text-center">คำตอบที่ถูก</th>
                     <th className="border px-2 py-1 text-center">คะแนน</th>
                     <th className="border px-2 py-1 text-center">จัดการ</th>
                   </tr>
@@ -389,7 +413,7 @@ function AdminQuizContent() {
                   {quizzes.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="border px-2 py-4 text-center text-gray-500"
                       >
                         ไม่มีข้อมูลข้อสอบ
@@ -406,6 +430,9 @@ function AdminQuizContent() {
                         </td>
                         <td className="border px-2 py-1 text-center">
                           {q.phase === "pre" ? "ก่อนเรียน" : "หลังเรียน"}
+                        </td>
+                        <td className="border px-2 py-1 text-center">
+                          {q.lesson}
                         </td>
                         <td className="border px-2 py-1 text-center max-w-xs truncate">
                           {q.question}

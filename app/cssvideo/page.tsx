@@ -1,9 +1,10 @@
-// app/cssvideo/page.tsx
+// app/cssvideo/page.tsx - Updated version with lesson filtering
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import RouteGuard from '@/components/routeGuard'
+import PretestChecker from '@/components/PretestChecker'
 
 interface Video {
   id: number;
@@ -11,21 +12,40 @@ interface Video {
   description: string;
   youtubeUrl: string;
   image: string;
+  lesson: number;
 }
 
 export default function CSSVideoPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [videos, setVideos] = useState<Video[]>([]);
+  const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
   const [videoSrc, setVideoSrc] = useState("");
-  const [videoTitle, setVideoTitle] = useState("แนะนําเนื้อหา");
+  const [videoTitle, setVideoTitle] = useState("แนะนำเนื้อหา");
   const [videoDescription, setVideoDescription] = useState("คำอธิบายบทเรียนโดยสรุปของเนื้อหานี้");
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [skippedLessons, setSkippedLessons] = useState<number[]>([]);
 
   useEffect(() => {
-    fetchVideos();
-  }, []);
+    if (user) {
+      fetchSkippedLessons();
+      fetchVideos();
+    }
+  }, [user]);
+
+  const fetchSkippedLessons = async () => {
+    try {
+      const response = await fetch(`/api/user-progress?userId=${user?.id}&courseType=CSS`);
+      if (response.ok) {
+        const data = await response.json();
+        const skipped = data.filter((progress: any) => progress.skipped).map((progress: any) => progress.lesson);
+        setSkippedLessons(skipped);
+      }
+    } catch (error) {
+      console.error('Error fetching skipped lessons:', error);
+    }
+  };
 
   const fetchVideos = async () => {
     try {
@@ -37,16 +57,9 @@ export default function CSSVideoPage() {
           video.title.toLowerCase().includes('css') || 
           video.description.toLowerCase().includes('css')
         );
-        // เรียงลำดับให้คลิปที่เพิ่มมาก่อนอยู่ด้านบนสุด (เรียงตาม id จากน้อยไปมาก)
-        cssVideos.sort((a: { id: number; }, b: { id: number; }) => a.id - b.id);
+        // เรียงลำดับตามบทเรียน
+        cssVideos.sort((a: Video, b: Video) => (a.lesson || 0) - (b.lesson || 0));
         setVideos(cssVideos);
-        
-        if (cssVideos.length > 0) {
-          setVideoSrc(getYouTubeEmbedUrl(cssVideos[0].youtubeUrl));
-          setVideoTitle(cssVideos[0].title);
-          setVideoDescription(cssVideos[0].description);
-          setCurrentVideoIndex(0);
-        }
       }
     } catch (error) {
       console.error('Failed to fetch videos:', error);
@@ -54,6 +67,19 @@ export default function CSSVideoPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // กรองวิดีโอที่ไม่ใช่บทเรียนที่ข้าม
+    const filtered = videos.filter(video => !skippedLessons.includes(video.lesson));
+    setFilteredVideos(filtered);
+    
+    if (filtered.length > 0) {
+      setVideoSrc(getYouTubeEmbedUrl(filtered[0].youtubeUrl));
+      setVideoTitle(filtered[0].title);
+      setVideoDescription(filtered[0].description);
+      setCurrentVideoIndex(0);
+    }
+  }, [videos, skippedLessons]);
 
   const getYouTubeEmbedUrl = (url: string): string => {
     const patterns = [
@@ -89,6 +115,23 @@ export default function CSSVideoPage() {
     router.push('/login')
   }
 
+  const markLessonComplete = async (lesson: number) => {
+    try {
+      await fetch('/api/user-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user?.id,
+          courseType: 'CSS',
+          lesson: lesson,
+          completed: true
+        })
+      });
+    } catch (error) {
+      console.error('Error marking lesson complete:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -99,118 +142,144 @@ export default function CSSVideoPage() {
 
   return (
     <RouteGuard requireAuth={true}>
-    <div className="min-h-screen bg-gray-100 p-4 flex flex-col md:flex-row gap-4" style={{ backgroundImage: "url('/img/bg-green.jpg')" }}>
-      <div className="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-        <div className="aspect-video w-full bg-black">
-          <iframe
-            src={videoSrc}
-            title={videoTitle}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="w-full h-full"
-          />
-        </div>
-
-        <div className="p-4 text-gray-700 text-center border-t bg-blue-50">
-          <h2 className="text-lg font-semibold">{videoTitle}</h2>
-          <p className="text-sm mt-1">{videoDescription}</p>
-        </div>
-      </div>
-
-      <div className="w-full md:w-80 bg-white rounded-xl shadow-lg flex flex-col">
-        <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-xl">
-          <div>
-            <h3 className="text-lg font-bold">เนื้อหา CSS</h3>
-            <p className="text-purple-100 text-sm">
-              {currentVideoIndex + 1} จาก {videos.length} บทเรียน
-            </p>
-          </div>
-          <button 
-            onClick={() => router.push('/dashboard')}
-            className="text-xl font-bold text-white hover:text-red-300 transition-colors"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {videos.length === 0 ? (
-            <div className="p-4 text-center text-gray-500">
-              ไม่มีเนื้อหาวิดีโอ CSS
+      <PretestChecker courseType="CSS">
+        <div className="min-h-screen bg-gray-100 p-4 flex flex-col md:flex-row gap-4" style={{ backgroundImage: "url('/img/bg-green.jpg')" }}>
+          <div className="flex-1 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+            <div className="aspect-video w-full bg-black">
+              <iframe
+                src={videoSrc}
+                title={videoTitle}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
             </div>
-          ) : (
-            <div className="space-y-1">
-              {videos.map((video, index) => (
-                <button
-                  key={video.id}
-                  className={`w-full text-left p-4 transition-all duration-200 hover:bg-gray-50 ${
-                    index === currentVideoIndex 
-                      ? 'bg-purple-50 border-r-4 border-purple-500' 
-                      : 'border-r-4 border-transparent'
-                  }`}
-                  onClick={() => handleVideoSelect(video, index)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
-                      {index === currentVideoIndex ? (
-                        <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-                      ) : (
-                        <span className="text-gray-600">{index + 1}</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium text-sm mb-1 ${
-                        index === currentVideoIndex ? 'text-purple-700' : 'text-gray-800'
-                      }`}>
-                        {video.title}
-                      </div>
-                      <div className="text-xs text-gray-500 line-clamp-2 mb-2">
-                        {video.description}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">
-                            ⏱️ {getDuration(index)}
-                          </span>
-                          {index === currentVideoIndex && (
-                            <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">
-                              กำลังเรียน
+
+            <div className="p-4 text-gray-700 text-center border-t bg-blue-50">
+              <h2 className="text-lg font-semibold">{videoTitle}</h2>
+              <p className="text-sm mt-1">{videoDescription}</p>
+            </div>
+          </div>
+
+          <div className="w-full md:w-80 bg-white rounded-xl shadow-lg flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-t-xl">
+              <div>
+                <h3 className="text-lg font-bold">เนื้อหา CSS</h3>
+                <p className="text-purple-100 text-sm">
+                  {currentVideoIndex + 1} จาก {filteredVideos.length} บทเรียน
+                </p>
+                {skippedLessons.length > 0 && (
+                  <p className="text-purple-100 text-xs mt-1">
+                    ข้าม {skippedLessons.length} บทเรียน (ผ่าน pretest)
+                  </p>
+                )}
+              </div>
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="text-xl font-bold text-white hover:text-red-300 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {filteredVideos.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  <p>ไม่มีเนื้อหาวิดีโอ CSS ที่ต้องเรียน</p>
+                  <p className="text-sm mt-2">
+                    {skippedLessons.length > 0 ? 
+                      `คุณได้ข้าม ${skippedLessons.length} บทเรียนจาก pretest` : 
+                      'กำลังโหลดเนื้อหา...'
+                    }
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredVideos.map((video, index) => (
+                    <button
+                      key={video.id}
+                      className={`w-full text-left p-4 transition-all duration-200 hover:bg-gray-50 ${
+                        index === currentVideoIndex 
+                          ? 'bg-purple-50 border-r-4 border-purple-500' 
+                          : 'border-r-4 border-transparent'
+                      }`}
+                      onClick={() => handleVideoSelect(video, index)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
+                          {index === currentVideoIndex ? (
+                            <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                          ) : (
+                            <span className="text-gray-600">
+                              {video.lesson || index + 1}
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {index < currentVideoIndex ? '✓' : ''}
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-medium text-sm mb-1 ${
+                            index === currentVideoIndex ? 'text-purple-700' : 'text-gray-800'
+                          }`}>
+                            {video.title}
+                          </div>
+                          <div className="text-xs text-gray-500 line-clamp-2 mb-2">
+                            {video.description}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                ⏱️ {getDuration(index)}
+                              </span>
+                              {index === currentVideoIndex && (
+                                <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">
+                                  กำลังเรียน
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {index < currentVideoIndex ? '✓' : ''}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="p-4 border-t bg-gray-50">
-          <div className="mb-3">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
-              <span>ความคืบหน้า</span>
-              <span>{Math.round(((currentVideoIndex + 1) / videos.length) * 100)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-purple-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${((currentVideoIndex + 1) / videos.length) * 100}%` }}
-              ></div>
+            <div className="p-4 border-t bg-gray-50">
+              <div className="mb-3">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>ความคืบหน้า</span>
+                  <span>
+                    {filteredVideos.length > 0 ? 
+                      Math.round(((currentVideoIndex + 1) / filteredVideos.length) * 100) : 0
+                    }%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${filteredVideos.length > 0 ? 
+                        ((currentVideoIndex + 1) / filteredVideos.length) * 100 : 0
+                      }%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => router.push('/posttest-css')}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
+              >
+                ทำข้อสอบหลังเรียน
+              </button>
             </div>
           </div>
-          
-          <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium">
-            ทำข้อสอบหลังเรียน
-          </button>
         </div>
-      </div>
-    </div>
+      </PretestChecker>
     </RouteGuard>
   );
 }

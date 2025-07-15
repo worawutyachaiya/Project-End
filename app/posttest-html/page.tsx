@@ -1,12 +1,14 @@
-// app/posttest-html/page.tsx
-import QuizComponent from '@/components/QuizComponent';
+// app/posttest-html/page.tsx - Updated version
+import EnhancedPosttestComponent from '@/components/EnhancedPosttestComponent';
+import RouteGuard from '@/components/routeGuard';
 
 export default function PosttestHTMLPage() {
   return (
-    <QuizComponent 
-      type="HTML" 
-      phase="post" 
-      title="ข้อสอบหลังเรียน-HTML" 
-    />
+    <RouteGuard requireAuth={true}>
+      <EnhancedPosttestComponent 
+        type="HTML" 
+        title="ข้อสอบหลังเรียน HTML" 
+      />
+    </RouteGuard>
   );
 }

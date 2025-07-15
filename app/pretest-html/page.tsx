@@ -1,12 +1,14 @@
-// app/pretest-html/page.tsx
-import QuizComponent from '@/components/QuizComponent';
+// app/pretest-html/page.tsx - Updated version
+import PretestQuizComponent from '@/components/PretestQuizComponent';
+import RouteGuard from '@/components/routeGuard';
 
 export default function PretestHTMLPage() {
   return (
-    <QuizComponent 
-      type="HTML" 
-      phase="pre" 
-      title="ข้อสอบก่อนเรียน-HTML" 
-    />
+    <RouteGuard requireAuth={true}>
+      <PretestQuizComponent 
+        type="HTML" 
+        title="ข้อสอบก่อนเรียน HTML" 
+      />
+    </RouteGuard>
   );
 }

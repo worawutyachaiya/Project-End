@@ -1,12 +1,14 @@
-// app/posttest-css/page.tsx
-import QuizComponent from '@/components/QuizComponent';
+// app/posttest-css/page.tsx - Updated version
+import EnhancedPosttestComponent from '@/components/EnhancedPosttestComponent';
+import RouteGuard from '@/components/routeGuard';
 
 export default function PosttestCSSPage() {
   return (
-    <QuizComponent 
-      type="CSS" 
-      phase="post" 
-      title="ข้อสอบหลังเรียน-CSS" 
-    />
+    <RouteGuard requireAuth={true}>
+      <EnhancedPosttestComponent 
+        type="CSS" 
+        title="ข้อสอบหลังเรียน CSS" 
+      />
+    </RouteGuard>
   );
 }

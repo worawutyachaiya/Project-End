@@ -56,6 +56,27 @@ const Register = () => {
       return
     }
 
+    // ตรวจสอบความยาวของรหัสนักศึกษา
+    if (form.studentId.length < 12) {
+      setError("รหัสนักศึกษาต้องมีอย่างน้อย 12 ตัวอักษร")
+      setIsLoading(false)
+      return
+    }
+
+    // ตรวจสอบว่ารหัสนักศึกษาเป็นตัวเลขเท่านั้น
+    if (!/^\d+$/.test(form.studentId)) {
+      setError("รหัสนักศึกษาต้องเป็นตัวเลขเท่านั้น")
+      setIsLoading(false)
+      return
+    }
+
+    // ตรวจสอบความยาวของรหัสผ่าน
+    if (form.password.length < 6) {
+      setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+      setIsLoading(false)
+      return
+    }
+
     if (form.password !== form.confirmPassword) {
       setError("รหัสผ่านไม่ตรงกัน")
       setIsLoading(false)
@@ -149,9 +170,32 @@ const Register = () => {
                 <InputField label="ชื่อจริง" name="firstName" value={form.firstName} onChange={handleChange} isLoading={isLoading} />
                 <InputField label="นามสกุล" name="lastName" value={form.lastName} onChange={handleChange} isLoading={isLoading} />
               </div>
-              <InputField label="รหัสนักศึกษา" name="studentId" value={form.studentId} onChange={handleChange} isLoading={isLoading} />
-              <InputField label="รหัสผ่าน" name="password" type="password" value={form.password} onChange={handleChange} isLoading={isLoading} />
-              <InputField label="ยืนยันรหัสผ่าน" name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} isLoading={isLoading} />
+              <InputField 
+                label="รหัสนักศึกษา (12 หลัก)" 
+                name="studentId" 
+                value={form.studentId} 
+                onChange={handleChange} 
+                isLoading={isLoading}
+                minLength={12}
+              />
+              <InputField 
+                label="รหัสผ่าน (6 หลัก)" 
+                name="password" 
+                type="password" 
+                value={form.password} 
+                onChange={handleChange} 
+                isLoading={isLoading}
+                minLength={6}
+              />
+              <InputField 
+                label="ยืนยันรหัสผ่าน" 
+                name="confirmPassword" 
+                type="password" 
+                value={form.confirmPassword} 
+                onChange={handleChange} 
+                isLoading={isLoading}
+                minLength={6}
+              />
 
               <button
                 type="submit"
@@ -197,7 +241,7 @@ const Register = () => {
   )
 }
 
-const InputField = ({ label, name, type = "text", value, onChange, isLoading }: any) => (
+const InputField = ({ label, name, type = "text", value, onChange, isLoading, minLength }: any) => (
   <div className="group">
     <label className="block text-sm font-medium text-white/90 mb-2">{label}</label>
     <div className="relative">
@@ -206,6 +250,7 @@ const InputField = ({ label, name, type = "text", value, onChange, isLoading }: 
         type={type}
         value={value}
         onChange={onChange}
+        minLength={minLength}
         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all duration-300 backdrop-blur-sm"
         placeholder={label}
         disabled={isLoading}

@@ -1,57 +1,70 @@
-// app/api/videos/route.js
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { writeFile } from 'fs/promises';
-import path from 'path';
+// app/api/videos/route.ts - Updated version
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// GET - ดึงข้อมูลวิดีโอทั้งหมด
 export async function GET() {
   try {
     const videos = await prisma.video.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: [
+        { courseType: 'asc' },
+        { lesson: 'asc' },
+        { createdAt: 'desc' }
+      ]
     });
+    
     return NextResponse.json(videos);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
+    console.error('Error fetching videos:', error);
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในการโหลดข้อมูล' },
+      { status: 500 }
+    );
   }
 }
 
-// POST - สร้างวิดีโอใหม่
-export async function POST(request: { formData: () => any; }) {
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const title = formData.get('title');
-    const description = formData.get('description');
-    const youtubeUrl = formData.get('youtubeUrl');
-    const image = formData.get('image');
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const youtubeUrl = formData.get('youtubeUrl') as string;
+    const courseType = formData.get('courseType') as string;
+    const lesson = parseInt(formData.get('lesson') as string);
+    const image = formData.get('image') as File | null;
 
-    let imagePath = null;
-    
-    // อัพโหลดรูปภาพ (ถ้ามี)
-    if (image && image.size > 0) {
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      
-      const filename = `${Date.now()}-${image.name}`;
-      const filepath = path.join(process.cwd(), 'public/uploads', filename);
-      
-      await writeFile(filepath, buffer);
-      imagePath = `/uploads/${filename}`;
+    // Validation
+    if (!title || !description || !youtubeUrl || !courseType || !lesson) {
+      return NextResponse.json(
+        { error: 'กรุณากรอกข้อมูลให้ครบถ้วน' },
+        { status: 400 }
+      );
     }
 
+    if (lesson < 1 || lesson > 10) {
+      return NextResponse.json(
+        { error: 'บทเรียนต้องอยู่ระหว่าง 1-10' },
+        { status: 400 }
+      );
+    }
+
+    // Create video
     const video = await prisma.video.create({
       data: {
         title,
         description,
         youtubeUrl,
-        image: imagePath,
+        courseType,
+        lesson,
+        image: image ? `/uploads/${Date.now()}-${image.name}` : null
       }
     });
 
-    return NextResponse.json(video, { status: 201 });
+    return NextResponse.json(video);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create video' }, { status: 500 });
+    console.error('Error creating video:', error);
+    return NextResponse.json(
+      { error: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' },
+      { status: 500 }
+    );
   }
 }

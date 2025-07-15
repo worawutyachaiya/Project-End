@@ -1,3 +1,4 @@
+// prisma/schema.prisma - Updated for enhanced posttest
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,6 +18,10 @@ model User {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  // Relations
+  quizResults QuizResult[]
+  userProgress UserProgress[]
 }
 
 model Quiz {
@@ -27,6 +32,7 @@ model Quiz {
   correct      String   @db.VarChar(1) // "1", "2", "3", or "4"
   score        String   @db.VarChar(10)
   phase        String   @db.VarChar(10) // "pre" or "post"
+  lesson       Int      // บทเรียนที่ 1-10
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -35,14 +41,36 @@ model Quiz {
 
 model QuizResult {
   id          Int      @id @default(autoincrement())
-  studentId   String   // รหัสนักเรียน
-  quizType    String   // "HTML" หรือ "CSS"
-  phase       String   // "pre" หรือ "post"
-  score       Int      // คะแนนที่ได้
-  totalScore  Int      // คะแนนเต็ม
-  percentage  Float    // คะแนนร้อยละ
-  answers     String   // JSON string ของคำตอบทั้งหมด
+  studentId   String   
+  userId      Int      
+  user        User     @relation(fields: [userId], references: [id])
+  quizType    String   
+  phase       String   
+  lesson      Int      
+  score       Int      
+  totalScore  Int      
+  percentage  Float    
+  passed      Boolean  
+  answers     String   
   completedAt DateTime @default(now())
+  
+  // ลบ unique constraint เก่า
+  @@map("quiz_results")
+}
+
+model UserProgress {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  courseType String  // "HTML" or "CSS"
+  lesson    Int      // บทเรียนที่ 1-10
+  completed Boolean  @default(false)
+  skipped   Boolean  @default(false) // ข้ามเพราะผ่าน pretest
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, courseType, lesson])
+  @@map("user_progress")
 }
 
 model Course {
@@ -70,6 +98,8 @@ model Video {
   description String    @db.Text
   youtubeUrl  String
   image       String?
+  courseType  String    // "HTML" or "CSS"
+  lesson      Int       // บทเรียนที่ 1-10
   categoryId  Int?
   category    Category? @relation(fields: [categoryId], references: [id])
   createdAt   DateTime  @default(now())
