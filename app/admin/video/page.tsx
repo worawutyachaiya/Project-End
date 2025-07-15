@@ -1,7 +1,7 @@
-// app/admin/video/page.tsx - Updated with lesson and courseType support
+// app/admin/video/page.tsx - Optimized version
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import RouteGuard from '@/components/routeGuard';
@@ -28,47 +28,140 @@ interface VideoForm {
   image: File | null;
 }
 
-// API functions
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+// Skeleton Loading Component
+const TableSkeleton = () => (
+  <div className="overflow-x-auto">
+    <table className="w-full mt-4 border text-sm">
+      <thead className="bg-gray-200">
+        <tr>
+          <th className="border px-2 py-1">ลำดับ</th>
+          <th className="border px-2 py-1">ประเภท</th>
+          <th className="border px-2 py-1">บทเรียน</th>
+          <th className="border px-2 py-1">หัวข้อ</th>
+          <th className="border px-2 py-1">รายละเอียด</th>
+          <th className="border px-2 py-1">รูปหน้าปก</th>
+          <th className="border px-2 py-1">วิดีโอ</th>
+          <th className="border px-2 py-1">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {[...Array(5)].map((_, i) => (
+          <tr key={i} className="bg-white">
+            <td className="border px-2 py-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="w-16 h-10 bg-gray-200 rounded animate-pulse mx-auto"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="w-20 h-12 bg-gray-200 rounded animate-pulse mx-auto"></div>
+            </td>
+            <td className="border px-2 py-1">
+              <div className="flex gap-1">
+                <div className="w-12 h-6 bg-gray-200 rounded animate-pulse"></div>
+                <div className="w-8 h-6 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
-const videoAPI = {
-  // Get all videos
-  getVideos: async (): Promise<Video[]> => {
-    const response = await fetch(`${API_BASE_URL}/videos`);
-    if (!response.ok) throw new Error('Failed to fetch videos');
-    return response.json();
-  },
+// Optimized Video Preview Component
+const VideoPreview = ({ youtubeUrl, title }: { youtubeUrl: string; title: string }) => {
+  const [showIframe, setShowIframe] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [thumbnailError, setThumbnailError] = useState(false);
 
-  // Create new video
-  createVideo: async (formData: FormData): Promise<Video> => {
-    const response = await fetch(`${API_BASE_URL}/videos`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (!response.ok) throw new Error('Failed to create video');
-    return response.json();
-  },
+  useEffect(() => {
+    const videoId = extractYouTubeId(youtubeUrl);
+    if (videoId) {
+      setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`);
+    }
+  }, [youtubeUrl]);
 
-  // Update video
-  updateVideo: async (id: number, formData: FormData): Promise<Video> => {
-    const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
-      method: 'PUT',
-      body: formData,
-    });
-    if (!response.ok) throw new Error('Failed to update video');
-    return response.json();
-  },
+  const extractYouTubeId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return null;
+  };
 
-  // Delete video
-  deleteVideo: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/videos/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete video');
-  },
+  if (!showIframe) {
+    return (
+      <div className="relative">
+        {thumbnailError || !thumbnailUrl ? (
+          <div className="w-20 h-12 bg-gray-200 rounded flex items-center justify-center cursor-pointer hover:bg-gray-300"
+               onClick={() => setShowIframe(true)}>
+            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+        ) : (
+          <>
+            <img 
+              src={thumbnailUrl} 
+              alt={title || 'Video thumbnail'}
+              className="w-20 h-12 object-cover rounded cursor-pointer hover:opacity-80"
+              onClick={() => setShowIframe(true)}
+              onError={() => setThumbnailError(true)}
+            />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-black bg-opacity-50 rounded-full p-1">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const videoId = extractYouTubeId(youtubeUrl);
+  const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+
+  return embedUrl ? (
+    <iframe
+      width="120"
+      height="68"
+      src={embedUrl}
+      title={title || 'YouTube video'}
+      frameBorder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+      className="rounded mx-auto"
+    />
+  ) : (
+    <span className="text-red-500 text-xs">URL ไม่ถูกต้อง</span>
+  );
 };
 
-// Helper function to extract YouTube video ID from URL
+// Helper functions
 const extractYouTubeId = (url: string): string | null => {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
@@ -85,17 +178,14 @@ const extractYouTubeId = (url: string): string | null => {
   return null;
 };
 
-// Helper function to validate YouTube URL
 const isValidYouTubeUrl = (url: string): boolean => {
   return extractYouTubeId(url) !== null;
 };
 
-// Helper function to get YouTube thumbnail URL
 const getYouTubeThumbnail = (videoId: string): string => {
-  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
 };
 
-// Helper function to get YouTube embed URL
 const getYouTubeEmbedUrl = (videoId: string): string => {
   return `https://www.youtube.com/embed/${videoId}`;
 };
@@ -108,6 +198,10 @@ function AdminVideoContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   const [form, setForm] = useState<VideoForm>({
     title: "",
@@ -127,14 +221,35 @@ function AdminVideoContent() {
     try {
       setLoading(true);
       setError(null);
-      const data = await videoAPI.getVideos();
-      setVideos(data);
+      
+      const response = await fetch('/api/videos');
+      if (!response.ok) throw new Error('Failed to fetch videos');
+      
+      const data = await response.json();
+      setVideos(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       setLoading(false);
     }
   };
+
+  // Filtered and paginated videos
+  const filteredVideos = useMemo(() => {
+    return videos.filter(video => {
+      const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           video.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterType === 'all' || video.courseType === filterType;
+      return matchesSearch && matchesFilter;
+    });
+  }, [videos, searchTerm, filterType]);
+
+  const paginatedVideos = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredVideos.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredVideos, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredVideos.length / itemsPerPage);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
@@ -163,13 +278,11 @@ function AdminVideoContent() {
       return;
     }
 
-    // Validate YouTube URL
     if (!isValidYouTubeUrl(form.youtubeUrl)) {
       alert("กรุณากรอก YouTube URL ที่ถูกต้อง");
       return;
     }
 
-    // Validate lesson number
     if (form.lesson < 1 || form.lesson > 10) {
       alert("บทเรียนต้องอยู่ระหว่าง 1-10");
       return;
@@ -190,15 +303,23 @@ function AdminVideoContent() {
         formData.append('image', form.image);
       }
 
+      const url = editingVideo ? `/api/videos/${editingVideo.id}` : '/api/videos';
+      const method = editingVideo ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to save video');
+
+      const savedVideo = await response.json();
+
       if (editingVideo) {
-        // Update existing video
-        const updatedVideo = await videoAPI.updateVideo(editingVideo.id, formData);
-        setVideos(videos.map(v => v.id === editingVideo.id ? updatedVideo : v));
+        setVideos(videos.map(v => v.id === editingVideo.id ? savedVideo : v));
         alert("แก้ไขวิดีโอสำเร็จ");
       } else {
-        // Create new video
-        const newVideo = await videoAPI.createVideo(formData);
-        setVideos([...videos, newVideo]);
+        setVideos([...videos, savedVideo]);
         alert("เพิ่มวิดีโอสำเร็จ");
       }
 
@@ -218,7 +339,7 @@ function AdminVideoContent() {
       youtubeUrl: video.youtubeUrl,
       courseType: video.courseType || "HTML",
       lesson: video.lesson || 1,
-      image: null, // Don't set existing image file
+      image: null,
     });
   };
 
@@ -227,7 +348,12 @@ function AdminVideoContent() {
 
     try {
       setError(null);
-      await videoAPI.deleteVideo(id);
+      const response = await fetch(`/api/videos/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete video');
+
       setVideos(videos.filter(v => v.id !== id));
       alert("ลบวิดีโอสำเร็จ");
     } catch (err) {
@@ -262,14 +388,10 @@ function AdminVideoContent() {
         </div>
       </header>
 
-      {/* Body */}
       <div className="flex flex-1">
         {/* Sidebar */}
         <aside className="w-64 bg-white/50 backdrop-blur-sm p-4 shadow text-black">
           <ul className="space-y-2">
-            <li className="pl-4">
-              <a href="/admin/dashboard" className="hover:text-blue-600">Dashboard</a>
-            </li>
             <li className="pl-4">
               <a href="/admin/quiz" className="hover:text-blue-600">จัดการข้อสอบ</a>
             </li>
@@ -291,8 +413,7 @@ function AdminVideoContent() {
           )}
 
           {/* Form */}
-          <div className="space-y-4 max-w-md">
-            {/* Course Type */}
+          <div className="space-y-4 max-w-md mb-8">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 ประเภทคอร์ส
@@ -309,7 +430,6 @@ function AdminVideoContent() {
               </select>
             </div>
 
-            {/* Lesson */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 บทเรียนที่
@@ -336,6 +456,7 @@ function AdminVideoContent() {
               disabled={submitting}
               className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
             />
+
             <input
               type="text"
               name="description"
@@ -345,6 +466,7 @@ function AdminVideoContent() {
               disabled={submitting}
               className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
             />
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 YouTube URL
@@ -358,30 +480,15 @@ function AdminVideoContent() {
                 disabled={submitting}
                 className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
               />
-              <p className="text-sm text-gray-500 mt-1">
-                รองรับ: youtube.com/watch?v=..., youtu.be/..., youtube.com/embed/...
-              </p>
-              {form.youtubeUrl && isValidYouTubeUrl(form.youtubeUrl) && (
-                <div className="mt-2">
-                  <p className="text-sm text-green-600">✓ URL ถูกต้อง</p>
-                  <div className="mt-2">
-                    <iframe
-                      width="280"
-                      height="158"
-                      src={getYouTubeEmbedUrl(extractYouTubeId(form.youtubeUrl)!)}
-                      title="YouTube video preview"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="rounded"
-                    ></iframe>
-                  </div>
-                </div>
-              )}
-              {form.youtubeUrl && !isValidYouTubeUrl(form.youtubeUrl) && (
-                <p className="text-sm text-red-600 mt-1">✗ URL ไม่ถูกต้อง</p>
+              {form.youtubeUrl && (
+                <p className={`text-sm mt-1 ${
+                  isValidYouTubeUrl(form.youtubeUrl) ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {isValidYouTubeUrl(form.youtubeUrl) ? '✓ URL ถูกต้อง' : '✗ URL ไม่ถูกต้อง'}
+                </p>
               )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 รูปภาพหน้าปก (ถ้าไม่เลือกจะใช้ thumbnail จาก YouTube)
@@ -394,12 +501,8 @@ function AdminVideoContent() {
                 disabled={submitting}
                 className="w-full border px-4 py-2 rounded text-black disabled:bg-gray-100"
               />
-              {form.image && (
-                <p className="text-sm text-gray-600 mt-1">
-                  ไฟล์ที่เลือก: {form.image.name}
-                </p>
-              )}
             </div>
+
             <div className="flex gap-2">
               <button
                 onClick={handleSubmit}
@@ -420,101 +523,162 @@ function AdminVideoContent() {
             </div>
           </div>
 
+          {/* Search and Filter */}
+          <div className="mb-6 flex gap-4">
+            <input
+              type="text"
+              placeholder="ค้นหาวิดีโอ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 border px-4 py-2 rounded text-black"
+            />
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="border px-4 py-2 rounded text-black"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="HTML">HTML</option>
+              <option value="CSS">CSS</option>
+            </select>
+          </div>
+
+          {/* Results count */}
+          <div className="mb-4 text-sm text-gray-600">
+            แสดง {paginatedVideos.length} จาก {filteredVideos.length} วิดีโอ
+          </div>
+
           {/* Table */}
-          <h2 className="text-lg font-bold mt-10">รายการวิดีโอทั้งหมด</h2>
+          <h2 className="text-lg font-bold mb-4">รายการวิดีโอทั้งหมด</h2>
           
           {loading ? (
-            <div className="text-center py-8">กำลังโหลด...</div>
+            <TableSkeleton />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full mt-4 border text-sm text-center text-black">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="border px-2 py-1">ลำดับ</th>
-                    <th className="border px-2 py-1">ประเภท</th>
-                    <th className="border px-2 py-1">บทเรียน</th>
-                    <th className="border px-2 py-1">หัวข้อหลักสูตร</th>
-                    <th className="border px-2 py-1">รายละเอียด</th>
-                    <th className="border px-2 py-1">รูปหน้าปก</th>
-                    <th className="border px-2 py-1">YouTube Video</th>
-                    <th className="border px-2 py-1">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {videos.length === 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full border text-sm text-center text-black">
+                  <thead className="bg-gray-200">
                     <tr>
-                      <td colSpan={8} className="border px-2 py-4 text-center text-gray-500">
-                        ไม่มีข้อมูลวิดีโอ
-                      </td>
+                      <th className="border px-2 py-1">ลำดับ</th>
+                      <th className="border px-2 py-1">ประเภท</th>
+                      <th className="border px-2 py-1">บทเรียน</th>
+                      <th className="border px-2 py-1">หัวข้อหลักสูตร</th>
+                      <th className="border px-2 py-1">รายละเอียด</th>
+                      <th className="border px-2 py-1">รูปหน้าปก</th>
+                      <th className="border px-2 py-1">YouTube Video</th>
+                      <th className="border px-2 py-1">จัดการ</th>
                     </tr>
-                  ) : (
-                    videos
-                      .sort((a, b) => {
-                        // Sort by courseType first, then by lesson
-                        if (a.courseType !== b.courseType) {
-                          return a.courseType.localeCompare(b.courseType);
-                        }
-                        return (a.lesson || 0) - (b.lesson || 0);
-                      })
-                      .map((video, idx) => {
+                  </thead>
+                  <tbody>
+                    {paginatedVideos.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="border px-2 py-4 text-center text-gray-500">
+                          {searchTerm || filterType !== 'all' ? 'ไม่พบวิดีโอที่ค้นหา' : 'ไม่มีข้อมูลวิดีโอ'}
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedVideos.map((video, idx) => {
                         const videoId = extractYouTubeId(video.youtubeUrl);
                         const thumbnailUrl = videoId ? getYouTubeThumbnail(videoId) : '';
-                        const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : '';
                         
                         return (
                           <tr key={video.id} className="bg-white">
-                            <td className="border px-2 py-1">{idx + 1}</td>
-                            <td className="border px-2 py-1">{video.courseType}</td>
-                            <td className="border px-2 py-1">{video.lesson}</td>
-                            <td className="border px-2 py-1">{video.title}</td>
-                            <td className="border px-2 py-1 max-w-xs truncate">{video.description}</td>
+                            <td className="border px-2 py-1">
+                              {(currentPage - 1) * itemsPerPage + idx + 1}
+                            </td>
+                            <td className="border px-2 py-1">
+                              <span className={`px-2 py-1 rounded text-xs ${
+                                video.courseType === 'HTML' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {video.courseType}
+                              </span>
+                            </td>
+                            <td className="border px-2 py-1">
+                              <span className="font-medium">{video.lesson}</span>
+                            </td>
+                            <td className="border px-2 py-1 max-w-xs">
+                              <div className="truncate" title={video.title}>
+                                {video.title}
+                              </div>
+                            </td>
+                            <td className="border px-2 py-1 max-w-xs">
+                              <div className="truncate" title={video.description}>
+                                {video.description}
+                              </div>
+                            </td>
                             <td className="border px-2 py-1">
                               <img 
                                 src={video.image || thumbnailUrl} 
                                 alt="รูป" 
-                                className="w-16 h-10 object-cover mx-auto"
+                                className="w-16 h-10 object-cover mx-auto rounded"
                                 onError={(e) => {
                                   e.currentTarget.src = '/placeholder.png';
                                 }}
                               />
                             </td>
                             <td className="border px-2 py-1">
-                              {embedUrl ? (
-                                <iframe
-                                  width="120"
-                                  height="68"
-                                  src={embedUrl}
-                                  title="YouTube video"
-                                  frameBorder="0"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                  className="rounded mx-auto"
-                                ></iframe>
-                              ) : (
-                                <span className="text-red-500">URL ไม่ถูกต้อง</span>
-                              )}
+                              <VideoPreview 
+                                youtubeUrl={video.youtubeUrl} 
+                                title={video.title}
+                              />
                             </td>
-                            <td className="border px-2 py-1 space-x-2">
-                              <button 
-                                onClick={() => handleEdit(video)}
-                                className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
-                              >
-                                แก้ไข
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(video.id)}
-                                className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
-                              >
-                                ลบ
-                              </button>
+                            <td className="border px-2 py-1">
+                              <div className="flex gap-1 justify-center">
+                                <button 
+                                  onClick={() => handleEdit(video)}
+                                  className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500 text-xs"
+                                >
+                                  แก้ไข
+                                </button>
+                                <button 
+                                  onClick={() => handleDelete(video.id)}
+                                  className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600 text-xs"
+                                >
+                                  ลบ
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
                       })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ก่อนหน้า
+                  </button>
+                  
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`px-3 py-1 border rounded ${
+                        currentPage === i + 1 ? 'bg-blue-500 text-white' : 'bg-white text-black'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ถัดไป
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

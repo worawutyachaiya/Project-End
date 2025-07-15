@@ -223,9 +223,6 @@ function AdminQuizContent() {
         {/* Sidebar */}
         <aside className="w-64 bg-white/50 backdrop-blur-sm p-4 shadow text-black">
           <ul className="space-y-2">
-            <li className="pl-4">
-              <a href="/admin/dashboard" className="hover:text-blue-600">Dashboard</a>
-            </li>
             <li className="pl-4 font-bold text-blue-600">จัดการข้อสอบ</li>
             <li className="pl-4">
               <a href="/admin/video" className="hover:text-blue-600">
