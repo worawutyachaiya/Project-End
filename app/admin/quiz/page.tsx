@@ -27,6 +27,11 @@ function AdminQuizContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingQuiz, setEditingQuiz] = useState<QuizItem | null>(null);
+  
+  // Filter states
+  const [selectedLesson, setSelectedLesson] = useState<number | 'all'>('all');
+  const [selectedPhase, setSelectedPhase] = useState<'all' | 'pre' | 'post'>('all');
+  const [selectedType, setSelectedType] = useState<'all' | 'HTML' | 'CSS'>('all');
 
   const [form, setForm] = useState<QuizItem>({
     id: 0,
@@ -64,6 +69,27 @@ function AdminQuizContent() {
       setLoading(false);
     }
   };
+
+  // Filter quizzes based on selected filters
+  const filteredQuizzes = quizzes.filter(quiz => {
+    const lessonMatch = selectedLesson === 'all' || quiz.lesson === selectedLesson;
+    const phaseMatch = selectedPhase === 'all' || quiz.phase === selectedPhase;
+    const typeMatch = selectedType === 'all' || quiz.questionType === selectedType;
+    
+    return lessonMatch && phaseMatch && typeMatch;
+  });
+
+  // Group quizzes by lesson for better display
+  const quizzesByLesson = filteredQuizzes.reduce((acc, quiz) => {
+    if (!acc[quiz.lesson]) {
+      acc[quiz.lesson] = [];
+    }
+    acc[quiz.lesson].push(quiz);
+    return acc;
+  }, {} as Record<number, QuizItem[]>);
+
+  // Get unique lessons that have quizzes
+  const availableLessons = [...new Set(quizzes.map(q => q.lesson))].sort((a, b) => a - b);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -190,6 +216,49 @@ function AdminQuizContent() {
     }
   };
 
+  const handleDeleteLesson = async (lesson: number) => {
+    const quizzesInLesson = quizzes.filter(q => q.lesson === lesson);
+    
+    if (quizzesInLesson.length === 0) {
+      alert("ไม่มีข้อสอบในบทเรียนนี้");
+      return;
+    }
+
+    const confirmMessage = `คุณต้องการลบข้อสอบทั้งหมดในบทเรียนที่ ${lesson} จำนวน ${quizzesInLesson.length} ข้อหรือไม่?\n\nการดำเนินการนี้ไม่สามารถยกเลิกได้`;
+    
+    if (!confirm(confirmMessage)) return;
+
+    try {
+      setError(null);
+      setSubmitting(true);
+
+      // Delete all quizzes in the lesson
+      const deletePromises = quizzesInLesson.map(quiz => 
+        fetch(`/api/admin/quizzes/${quiz.id}`, { method: "DELETE" })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      
+      // Check if all deletions were successful
+      const failedDeletions = responses.filter(response => !response.ok);
+      
+      if (failedDeletions.length > 0) {
+        throw new Error(`ลบไม่สำเร็จ ${failedDeletions.length} ข้อจากทั้งหมด ${quizzesInLesson.length} ข้อ`);
+      }
+
+      // Update local state
+      setQuizzes((prev) => prev.filter((q) => q.lesson !== lesson));
+      alert(`ลบข้อสอบทั้งหมดในบทเรียนที่ ${lesson} สำเร็จ (${quizzesInLesson.length} ข้อ)`);
+      
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการลบข้อมูล"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (confirm("คุณต้องการออกจากระบบหรือไม่?")) {
       await logout();
@@ -227,6 +296,11 @@ function AdminQuizContent() {
             <li className="pl-4">
               <a href="/admin/video" className="hover:text-blue-600">
                 จัดการวิดีโอ
+              </a>
+            </li>
+            <li className="pl-4">
+              <a href="/admin/students" className="hover:text-blue-600">
+                ข้อมูลนักเรียน
               </a>
             </li>
           </ul>
@@ -386,79 +460,214 @@ function AdminQuizContent() {
             </div>
           </div>
 
-          {/* ตารางแสดงรายการข้อสอบ */}
-          <h2 className="text-lg font-bold mt-10">รายการข้อสอบทั้งหมด</h2>
+          {/* Filter Section */}
+          <div className="mt-10 mb-6">
+            <h2 className="text-lg font-bold mb-4">รายการข้อสอบทั้งหมด</h2>
+            
+            <div className="bg-gray-50 p-4 rounded mb-4">
+              <h3 className="font-semibold mb-3">ตัวกรองข้อมูล</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Filter by Lesson */}
+                <div>
+                  <label className="block mb-1 text-sm font-medium">บทเรียน</label>
+                  <select
+                    value={selectedLesson}
+                    onChange={(e) => setSelectedLesson(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                    className="w-full border px-3 py-2 rounded text-black"
+                  >
+                    <option value="all">ทุกบทเรียน</option>
+                    {availableLessons.map(lesson => (
+                      <option key={lesson} value={lesson}>บทเรียนที่ {lesson}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filter by Phase */}
+                <div>
+                  <label className="block mb-1 text-sm font-medium">ช่วงเวลา</label>
+                  <select
+                    value={selectedPhase}
+                    onChange={(e) => setSelectedPhase(e.target.value as 'all' | 'pre' | 'post')}
+                    className="w-full border px-3 py-2 rounded text-black"
+                  >
+                    <option value="all">ทุกช่วง</option>
+                    <option value="pre">ก่อนเรียน</option>
+                    <option value="post">หลังเรียน</option>
+                  </select>
+                </div>
+
+                {/* Filter by Type */}
+                <div>
+                  <label className="block mb-1 text-sm font-medium">ประเภท</label>
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value as 'all' | 'HTML' | 'CSS')}
+                    className="w-full border px-3 py-2 rounded text-black"
+                  >
+                    <option value="all">ทุกประเภท</option>
+                    <option value="HTML">HTML</option>
+                    <option value="CSS">CSS</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-3 text-sm text-gray-600">
+                แสดงผล: {filteredQuizzes.length} ข้อจากทั้งหมด {quizzes.length} ข้อ
+              </div>
+            </div>
+          </div>
 
           {loading ? (
             <div className="text-center py-8">กำลังโหลด...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full mt-4 border text-sm text-black">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="border px-2 py-1 text-center">ลำดับ</th>
-                    <th className="border px-2 py-1 text-center">ประเภท</th>
-                    <th className="border px-2 py-1 text-center">ช่วง</th>
-                    <th className="border px-2 py-1 text-center">บทเรียน</th>
-                    <th className="border px-2 py-1 text-center">คำถาม</th>
-                    <th className="border px-2 py-1 text-center">คำตอบที่ถูก</th>
-                    <th className="border px-2 py-1 text-center">คะแนน</th>
-                    <th className="border px-2 py-1 text-center">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quizzes.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="border px-2 py-4 text-center text-gray-500"
-                      >
-                        ไม่มีข้อมูลข้อสอบ
-                      </td>
-                    </tr>
-                  ) : (
-                    quizzes.map((q, idx) => (
-                      <tr key={q.id} className="bg-white">
-                        <td className="border px-2 py-1 text-center">
-                          {idx + 1}
-                        </td>
-                        <td className="border px-2 py-1 text-center">
-                          {q.questionType}
-                        </td>
-                        <td className="border px-2 py-1 text-center">
-                          {q.phase === "pre" ? "ก่อนเรียน" : "หลังเรียน"}
-                        </td>
-                        <td className="border px-2 py-1 text-center">
-                          {q.lesson}
-                        </td>
-                        <td className="border px-2 py-1 text-center max-w-xs truncate">
-                          {q.question}
-                        </td>
-                        <td className="border px-2 py-1 text-center">
-                          {q.choices[parseInt(q.correct) - 1]}
-                        </td>
-                        <td className="border px-2 py-1 text-center">
-                          {q.score}
-                        </td>
-                        <td className="border px-2 py-1 text-center space-x-2">
+            <div className="space-y-6">
+              {selectedLesson === 'all' ? (
+                // Show grouped by lessons
+                Object.keys(quizzesByLesson).length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    ไม่มีข้อมูลข้อสอบตามเงื่อนไขที่เลือก
+                  </div>
+                ) : (
+                  Object.entries(quizzesByLesson)
+                    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                    .map(([lesson, quizzesInLesson]) => (
+                      <div key={lesson} className="border rounded-lg p-4 bg-white">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-bold">
+                            บทเรียนที่ {lesson} ({quizzesInLesson.length} ข้อ)
+                          </h3>
                           <button
-                            onClick={() => handleEdit(q)}
-                            className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
+                            onClick={() => handleDeleteLesson(parseInt(lesson))}
+                            disabled={submitting}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:bg-gray-400"
                           >
-                            แก้ไข
+                            ลบทั้งบท
                           </button>
-                          <button
-                            onClick={() => handleDelete(q.id)}
-                            className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
-                          >
-                            ลบ
-                          </button>
-                        </td>
-                      </tr>
+                        </div>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="w-full border text-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="border px-2 py-1 text-center">ลำดับ</th>
+                                <th className="border px-2 py-1 text-center">ประเภท</th>
+                                <th className="border px-2 py-1 text-center">ช่วง</th>
+                                <th className="border px-2 py-1 text-center">คำถาม</th>
+                                <th className="border px-2 py-1 text-center">คำตอบที่ถูก</th>
+                                <th className="border px-2 py-1 text-center">คะแนน</th>
+                                <th className="border px-2 py-1 text-center">จัดการ</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {quizzesInLesson.map((q, idx) => (
+                                <tr key={q.id} className="bg-white">
+                                  <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                                  <td className="border px-2 py-1 text-center">{q.questionType}</td>
+                                  <td className="border px-2 py-1 text-center">
+                                    {q.phase === "pre" ? "ก่อนเรียน" : "หลังเรียน"}
+                                  </td>
+                                  <td className="border px-2 py-1 text-center max-w-xs truncate">
+                                    {q.question}
+                                  </td>
+                                  <td className="border px-2 py-1 text-center">
+                                    {q.choices[parseInt(q.correct) - 1]}
+                                  </td>
+                                  <td className="border px-2 py-1 text-center">{q.score}</td>
+                                  <td className="border px-2 py-1 text-center space-x-2">
+                                    <button
+                                      onClick={() => handleEdit(q)}
+                                      className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
+                                    >
+                                      แก้ไข
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(q.id)}
+                                      className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
+                                    >
+                                      ลบ
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     ))
+                )
+              ) : (
+                // Show single lesson
+                <div className="border rounded-lg p-4 bg-white">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold">
+                      บทเรียนที่ {selectedLesson} ({filteredQuizzes.length} ข้อ)
+                    </h3>
+                    {filteredQuizzes.length > 0 && (
+                      <button
+                        onClick={() => handleDeleteLesson(selectedLesson as number)}
+                        disabled={submitting}
+                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:bg-gray-400"
+                      >
+                        ลบทั้งบท
+                      </button>
+                    )}
+                  </div>
+                  
+                  {filteredQuizzes.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      ไม่มีข้อมูลข้อสอบในบทเรียนนี้
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border text-sm">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="border px-2 py-1 text-center">ลำดับ</th>
+                            <th className="border px-2 py-1 text-center">ประเภท</th>
+                            <th className="border px-2 py-1 text-center">ช่วง</th>
+                            <th className="border px-2 py-1 text-center">คำถาม</th>
+                            <th className="border px-2 py-1 text-center">คำตอบที่ถูก</th>
+                            <th className="border px-2 py-1 text-center">คะแนน</th>
+                            <th className="border px-2 py-1 text-center">จัดการ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredQuizzes.map((q, idx) => (
+                            <tr key={q.id} className="bg-white">
+                              <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                              <td className="border px-2 py-1 text-center">{q.questionType}</td>
+                              <td className="border px-2 py-1 text-center">
+                                {q.phase === "pre" ? "ก่อนเรียน" : "หลังเรียน"}
+                              </td>
+                              <td className="border px-2 py-1 text-center max-w-xs truncate">
+                                {q.question}
+                              </td>
+                              <td className="border px-2 py-1 text-center">
+                                {q.choices[parseInt(q.correct) - 1]}
+                              </td>
+                              <td className="border px-2 py-1 text-center">{q.score}</td>
+                              <td className="border px-2 py-1 text-center space-x-2">
+                                <button
+                                  onClick={() => handleEdit(q)}
+                                  className="bg-yellow-400 px-2 py-1 rounded text-white hover:bg-yellow-500"
+                                >
+                                  แก้ไข
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(q.id)}
+                                  className="bg-red-500 px-2 py-1 rounded text-white hover:bg-red-600"
+                                >
+                                  ลบ
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
-                </tbody>
-              </table>
+                </div>
+              )}
             </div>
           )}
         </main>

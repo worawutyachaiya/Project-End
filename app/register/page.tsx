@@ -1,4 +1,3 @@
-//app\register\page.tsx
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -9,12 +8,19 @@ const Register = () => {
   const router = useRouter()
   const { login, user } = useAuth()
 
+  // Generate academic years in Buddhist Era (current year - 1, current year, current year + 1)
+  const currentYearAD = new Date().getFullYear()
+  const currentYearBE = currentYearAD + 543 // Convert to Buddhist Era
+  const academicYears = [currentYearBE - 1, currentYearBE, currentYearBE + 1]
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
     studentId: '',
+    email: '',  // เพิ่มฟิลด์อีเมล
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    academicYear: currentYearBE // Default to current year in BE
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -41,80 +47,143 @@ const Register = () => {
   }, [])
 
   const handleChange = (e: any) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setForm({ ...form, [name]: name === 'academicYear' ? parseInt(value) : value })
     setError('')
   }
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
+  // เพิ่ม debug ในหน้า register - ใส่ในฟังก์ชัน handleSubmit
 
-    if (!form.firstName || !form.lastName || !form.studentId || !form.password || !form.confirmPassword) {
-      setError("กรุณากรอกข้อมูลให้ครบ")
-      setIsLoading(false)
-      return
-    }
+const handleSubmit = async (e: any) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError('')
 
-    // ตรวจสอบความยาวของรหัสนักศึกษา
-    if (form.studentId.length < 12) {
-      setError("รหัสนักศึกษาต้องมีอย่างน้อย 12 ตัวอักษร")
-      setIsLoading(false)
-      return
-    }
+  // เพิ่ม debug logs
+  console.log('🔍 === Frontend Registration Debug ===')
+  console.log('📝 Form values:', form)
+  
+  // ตรวจสอบปีการศึกษาเป็นพิเศษ
+  console.log('📅 Academic Year Debug:')
+  console.log('- Value from form:', form.academicYear)
+  console.log('- Type:', typeof form.academicYear)
+  console.log('- Is BE format?:', form.academicYear > 2100)
+  console.log('- Current year BE:', new Date().getFullYear() + 543)
 
-    // ตรวจสอบว่ารหัสนักศึกษาเป็นตัวเลขเท่านั้น
-    if (!/^\d+$/.test(form.studentId)) {
-      setError("รหัสนักศึกษาต้องเป็นตัวเลขเท่านั้น")
-      setIsLoading(false)
-      return
-    }
+  // Validation เดิม...
+  if (!form.firstName || !form.lastName || !form.studentId || !form.email || !form.password || !form.confirmPassword || !form.academicYear) {
+    console.log('❌ Missing required fields')
+    setError("กรุณากรอกข้อมูลให้ครบ")
+    setIsLoading(false)
+    return
+  }
 
-    // ตรวจสอบความยาวของรหัสผ่าน
-    if (form.password.length < 6) {
-      setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
-      setIsLoading(false)
-      return
-    }
+  // เพิ่มการตรวจสอบปีการศึกษา
+  const currentYearBE = new Date().getFullYear() + 543
+  const validYearsBE = [currentYearBE - 1, currentYearBE, currentYearBE + 1]
+  
+  console.log('📅 Year validation:')
+  console.log('- Valid BE years:', validYearsBE)
+  console.log('- Selected year:', form.academicYear)
+  console.log('- Is valid?:', validYearsBE.includes(form.academicYear))
 
-    if (form.password !== form.confirmPassword) {
-      setError("รหัสผ่านไม่ตรงกัน")
-      setIsLoading(false)
-      return
-    }
+  if (!validYearsBE.includes(form.academicYear)) {
+    console.log('❌ Invalid academic year on frontend')
+    setError(`ปีการศึกษาต้องเป็น ${validYearsBE.join(' หรือ ')}`)
+    setIsLoading(false)
+    return
+  }
 
-    try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      })
+  // Validation อื่นๆ เดิม...
+  if (form.studentId.length < 12) {
+    setError("รหัสนักศึกษาต้องมีอย่างน้อย 12 ตัวอักษร")
+    setIsLoading(false)
+    return
+  }
 
-      const data = await res.json()
+  if (!/^\d+$/.test(form.studentId)) {
+    setError("รหัสนักศึกษาต้องเป็นตัวเลขเท่านั้น")
+    setIsLoading(false)
+    return
+  }
 
-      if (!res.ok) {
-        setError(data.error || "เกิดข้อผิดพลาด")
-      } else {
-        const loginSuccess = await login(form.studentId, form.password)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(form.email)) {
+    setError("กรุณากรอกอีเมลให้ถูกต้อง")
+    setIsLoading(false)
+    return
+  }
 
-        if (loginSuccess) {
-          const authRes = await fetch('/api/auth/check')
-          const authData = await authRes.json()
-          if (authData.user.role === 'admin') {
-            router.push('/admin/quiz')
-          } else {
-            router.push('/')
-          }
-        } else {
-          router.push('/login')
-        }
+  if (form.password.length < 6) {
+    setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร")
+    setIsLoading(false)
+    return
+  }
+
+  if (form.password !== form.confirmPassword) {
+    setError("รหัสผ่านไม่ตรงกัน")
+    setIsLoading(false)
+    return
+  }
+
+  console.log('✅ Frontend validation passed')
+
+  // Prepare data for API
+  const requestData = {
+    firstName: form.firstName,
+    lastName: form.lastName,
+    studentId: form.studentId,
+    email: form.email,
+    password: form.password,
+    academicYear: form.academicYear // ส่งเป็นปี พ.ศ.
+  }
+
+  console.log('📤 Sending to API:', {
+    ...requestData,
+    password: '[HIDDEN]'
+  })
+
+  try {
+    console.log('🌐 Making API request...')
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestData)
+    })
+
+    console.log('📨 Response status:', res.status)
+    const data = await res.json()
+    console.log('📨 Response data:', data)
+
+    if (!res.ok) {
+      console.log('❌ API returned error:', data.error)
+      if (data.debug) {
+        console.log('🔍 Debug info:', data.debug)
       }
-    } catch (error) {
-      setError("เกิดข้อผิดพลาดในการลงทะเบียน")
-    } finally {
-      setIsLoading(false)
+      setError(data.error || "เกิดข้อผิดพลาด")
+    } else {
+      console.log('✅ Registration successful!')
+      const loginSuccess = await login(form.studentId, form.password)
+
+      if (loginSuccess) {
+        const authRes = await fetch('/api/auth/check')
+        const authData = await authRes.json()
+        if (authData.user.role === 'admin') {
+          router.push('/admin/quiz')
+        } else {
+          router.push('/')
+        }
+      } else {
+        router.push('/login')
+      }
     }
+  } catch (error) {
+    console.error('❌ Network error:', error)
+    setError("เกิดข้อผิดพลาดในการลงทะเบียน")
+  } finally {
+    setIsLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -170,6 +239,7 @@ const Register = () => {
                 <InputField label="ชื่อจริง" name="firstName" value={form.firstName} onChange={handleChange} isLoading={isLoading} />
                 <InputField label="นามสกุล" name="lastName" value={form.lastName} onChange={handleChange} isLoading={isLoading} />
               </div>
+
               <InputField 
                 label="รหัสนักศึกษา (12 หลัก)" 
                 name="studentId" 
@@ -178,6 +248,42 @@ const Register = () => {
                 isLoading={isLoading}
                 minLength={12}
               />
+
+              <InputField 
+                label="อีเมล" 
+                name="email" 
+                type="email"
+                value={form.email} 
+                onChange={handleChange} 
+                isLoading={isLoading}
+                placeholder="example@email.com"
+              />
+
+              {/* Academic Year Dropdown */}
+              <div className="group">
+                <label className="block text-sm font-medium text-white/90 mb-2">ปีการศึกษา</label>
+                <div className="relative">
+                  <select
+                    name="academicYear"
+                    value={form.academicYear}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all duration-300 backdrop-blur-sm appearance-none"
+                  >
+                    {academicYears.map(year => (
+                      <option key={year} value={year} className="bg-slate-800 text-white">
+                        {year} {year === currentYearBE && '(ปัจจุบัน)'}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg className="w-5 h-5 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
               <InputField 
                 label="รหัสผ่าน (6 หลัก)" 
                 name="password" 
@@ -241,7 +347,7 @@ const Register = () => {
   )
 }
 
-const InputField = ({ label, name, type = "text", value, onChange, isLoading, minLength }: any) => (
+const InputField = ({ label, name, type = "text", value, onChange, isLoading, minLength, placeholder }: any) => (
   <div className="group">
     <label className="block text-sm font-medium text-white/90 mb-2">{label}</label>
     <div className="relative">
@@ -252,7 +358,7 @@ const InputField = ({ label, name, type = "text", value, onChange, isLoading, mi
         onChange={onChange}
         minLength={minLength}
         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sky-400/50 focus:border-sky-400/50 transition-all duration-300 backdrop-blur-sm"
-        placeholder={label}
+        placeholder={placeholder || label}
         disabled={isLoading}
       />
     </div>

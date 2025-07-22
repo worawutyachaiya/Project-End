@@ -11,7 +11,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   
   // กำหนด routes ที่ไม่ต้องการ nav และ footer
-  const hideNavFooter = ['/login', '/register','/admin/quiz','/admin/video'].includes(pathname);
+  const hideNavFooter = ['/login', '/register','/admin/quiz','/admin/video','/admin/students','/reset-password'].includes(pathname);
 
   return (
     <html>

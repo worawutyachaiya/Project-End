@@ -1,52 +1,41 @@
-// app/login/page.tsx
+//app/login/page.tsx - เพิ่มลิงก์ลืมรหัสผ่าน
 "use client"
-import { useState, useEffect } from "react"
+
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 
 const Login = () => {
   const router = useRouter()
   const { login, user } = useAuth()
-  const [form, setForm] = useState({ studentId: '', password: '' })
+  
+  const [form, setForm] = useState({
+    studentId: '',
+    password: ''
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [mounted, setMounted] = useState(false) 
-  const [particles, setParticles] = useState<Array<{
-    id: number;
-    left: string;
-    top: string;
-    duration: string;
-    delay: string;
-  }>>([])
+  const [isClient, setIsClient] = useState(false)
 
-  // แก้ hydration issue
   useEffect(() => {
-    setMounted(true)
-    
-    // สร้าง particles หลังจาก component mounted
-    const newParticles = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      duration: `${3 + Math.random() * 4}s`,
-      delay: `${Math.random() * 3}s`
-    }))
-    
-    setParticles(newParticles)
+    setIsClient(true)
   }, [])
 
-  // ตรวจสอบสถานะ login และ redirect หากล็อกอินแล้ว
+  // redirect ถ้ามีผู้ใช้อยู่แล้ว
   useEffect(() => {
     if (user) {
-      // ถ้าเป็น admin redirect ไป admin/quiz
-      if (user.role === 'admin') {
-        router.replace('/admin/quiz')
-      } else {
-        // ถ้าเป็น user ทั่วไป redirect ไป home
-        router.replace('/')
-      }
+      router.push(user.role === 'admin' ? '/admin/quiz' : '/')
     }
-  }, [user, router])
+  }, [user])
+
+  const particles = useMemo(() => {
+    return Array.from({ length: 40 }).map(() => ({
+      left: Math.random() * 100,
+      top: Math.random() * 100,
+      duration: 3 + Math.random() * 4,
+      delay: Math.random() * 3,
+    }))
+  }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -59,83 +48,58 @@ const Login = () => {
     setError('')
 
     if (!form.studentId || !form.password) {
-      setError("กรุณากรอกข้อมูลให้ครบ")
+      setError("กรุณากรอกรหัสนักเรียนและรหัสผ่าน")
       setIsLoading(false)
       return
     }
 
-    try {
-      const success = await login(form.studentId, form.password)
-      
-      if (success) {
-        const res = await fetch('/api/auth/check')
-        if (res.ok) {
-          const data = await res.json()
-          if (data.user.role === 'admin') {
-            router.replace('/admin/quiz')
-          } else {
-            router.replace('/')
-          }
-        }
-      } else {
-        setError("รหัสนักเรียนหรือรหัสผ่านไม่ถูกต้อง")
-      }
-    } catch (error) {
-      setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ")
-    } finally {
-      setIsLoading(false)
+    const success = await login(form.studentId, form.password)
+    
+    if (!success) {
+      setError("รหัสนักเรียนหรือรหัสผ่านไม่ถูกต้อง")
     }
-  }
-
-  // แสดง loading state ขณะตรวจสอบสถานะ auth
-  // (ถ้าต้องการแสดง loading ให้ใช้ state ภายใน component หรือจาก context ถ้ามี)
-
-  // ถ้าผู้ใช้ล็อกอินแล้ว จะไม่แสดงหน้า login (จะ redirect ใน useEffect)
-  if (user) {
-    return null
+    
+    setIsLoading(false)
   }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Animated background with gradients - เปลี่ยนเป็นโทน emerald/teal/cyan */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-900">
-        {/* Animated circles */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-teal-400 to-green-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
+      {/* Background gradients */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        <div className="absolute top-3/4 right-1/3 w-72 h-72 bg-gradient-to-r from-pink-400 to-red-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
       </div>
 
-      {/* Floating particles - แก้ไข hydration issue */}
-      {mounted && (
+      {/* Particle animation */}
+      {isClient && (
         <div className="absolute inset-0">
-          {particles.map((particle) => (
+          {particles.map((p, i) => (
             <div
-              key={particle.id}
+              key={i}
               className="absolute w-1 h-1 bg-white rounded-full opacity-30"
               style={{
-                left: particle.left,
-                top: particle.top,
-                animation: `float ${particle.duration} ease-in-out infinite`,
-                animationDelay: particle.delay
+                left: `${p.left}%`,
+                top: `${p.top}%`,
+                animation: `float ${p.duration}s ease-in-out infinite`,
+                animationDelay: `${p.delay}s`
               }}
             />
           ))}
         </div>
       )}
 
+      {/* Login card */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        {/* Glassmorphism card */}
         <div className="w-full max-w-md">
           <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
-            {/* Header with gradient text */}
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
                 Welcome Back
               </h1>
-              <p className="text-white/70 text-sm">เข้าสู่ระบบเพื่อเริ่มต้นการเรียนรู้</p>
+              <p className="text-white/70 text-sm">เข้าสู่ระบบเรียนรู้ของคุณ</p>
             </div>
 
-            {/* Error message */}
             {error && (
               <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 text-red-100 rounded-2xl backdrop-blur-sm">
                 <div className="flex items-center">
@@ -147,50 +111,51 @@ const Login = () => {
               </div>
             )}
 
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Student ID Input */}
+            <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="group">
-                <label className="block text-sm font-medium text-white/90 mb-2">
-                  รหัสนักเรียน
-                </label>
+                <label className="block text-sm font-medium text-white/90 mb-2">รหัสนักเรียน</label>
                 <div className="relative">
                   <input
                     name="studentId"
                     type="text"
                     value={form.studentId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 backdrop-blur-sm"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all duration-300 backdrop-blur-sm"
                     placeholder="กรอกรหัสนักเรียน"
                     disabled={isLoading}
                   />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/0 to-teal-400/0 group-hover:from-emerald-400/10 group-hover:to-teal-400/10 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </div>
 
-              {/* Password Input */}
               <div className="group">
-                <label className="block text-sm font-medium text-white/90 mb-2">
-                  รหัสผ่าน
-                </label>
+                <label className="block text-sm font-medium text-white/90 mb-2">รหัสผ่าน</label>
                 <div className="relative">
                   <input
                     name="password"
                     type="password"
                     value={form.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all duration-300 backdrop-blur-sm"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400/50 transition-all duration-300 backdrop-blur-sm"
                     placeholder="กรอกรหัสผ่าน"
                     disabled={isLoading}
                   />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/0 to-teal-400/0 group-hover:from-emerald-400/10 group-hover:to-teal-400/10 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Forgot Password Link */}
+              <div className="text-right">
+                <a 
+                  href="/forgot-password" 
+                  className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors duration-200 hover:underline"
+                >
+                  ลืมรหัสผ่าน?
+                </a>
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full relative py-3 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full relative py-3 px-6 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
@@ -206,13 +171,12 @@ const Login = () => {
               </button>
             </form>
 
-            {/* Register Link */}
             <div className="mt-8 text-center">
               <p className="text-white/70 text-sm">
                 ยังไม่มีบัญชี?{' '}
                 <a 
                   href="/register" 
-                  className="text-emerald-400 hover:text-emerald-300 font-medium transition-colors duration-200 hover:underline"
+                  className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors duration-200 hover:underline"
                 >
                   สมัครสมาชิก
                 </a>
@@ -232,4 +196,4 @@ const Login = () => {
   )
 }
 
-export default Login  
+export default Login

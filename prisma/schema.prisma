@@ -1,4 +1,4 @@
-// prisma/schema.prisma - Updated for enhanced posttest
+// prisma/schema.prisma - ตรวจสอบให้แน่ใจว่าเหมือนกับนี้
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,16 +8,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// prisma/schema.prisma - เพิ่มฟิลด์ email
 model User {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  studentId String   @unique
-  password  String
-  role      String   @default("student") // "admin" or "student"
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   Int       @id @default(autoincrement())
+  firstName            String
+  lastName             String
+  studentId            String    @unique
+  email                String    @unique  // เพิ่มฟิลด์อีเมล
+  password             String
+  academicYear         Int
+  role                 String    @default("student")
+  isActive             Boolean   @default(true)
+  
+  // Password reset fields
+  resetToken           String?   
+  resetTokenExpiry     DateTime? 
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
   
   // Relations
   quizResults QuizResult[]
@@ -26,13 +34,13 @@ model User {
 
 model Quiz {
   id           Int      @id @default(autoincrement())
-  questionType String   @db.VarChar(10) // "HTML" or "CSS"
+  questionType String   @db.VarChar(10) 
   question     String   @db.Text
-  choices      String[] // PostgreSQL array for choices
-  correct      String   @db.VarChar(1) // "1", "2", "3", or "4"
+  choices      String[] 
+  correct      String   @db.VarChar(1) 
   score        String   @db.VarChar(10)
-  phase        String   @db.VarChar(10) // "pre" or "post"
-  lesson       Int      // บทเรียนที่ 1-10
+  phase        String   @db.VarChar(10) 
+  lesson       Int      
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -54,7 +62,6 @@ model QuizResult {
   answers     String   
   completedAt DateTime @default(now())
   
-  // ลบ unique constraint เก่า
   @@map("quiz_results")
 }
 
@@ -62,10 +69,10 @@ model UserProgress {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
-  courseType String  // "HTML" or "CSS"
-  lesson    Int      // บทเรียนที่ 1-10
+  courseType String  
+  lesson    Int      
   completed Boolean  @default(false)
-  skipped   Boolean  @default(false) // ข้ามเพราะผ่าน pretest
+  skipped   Boolean  @default(false) 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -98,8 +105,8 @@ model Video {
   description String    @db.Text
   youtubeUrl  String
   image       String?
-  courseType  String    // "HTML" or "CSS"
-  lesson      Int       // บทเรียนที่ 1-10
+  courseType  String    
+  lesson      Int       
   categoryId  Int?
   category    Category? @relation(fields: [categoryId], references: [id])
   createdAt   DateTime  @default(now())

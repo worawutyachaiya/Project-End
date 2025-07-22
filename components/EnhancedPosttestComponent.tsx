@@ -1,8 +1,21 @@
-// components/EnhancedPosttestComponent.tsx - Updated with dark text
+// components/EnhancedPosttestComponent.tsx - Part 1 (ครึ่งแรก)
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend,
+  ReferenceLine
+} from 'recharts';
 
 type QuizItem = {
   id: number;
@@ -220,6 +233,54 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     });
   };
 
+  // สร้างข้อมูลสำหรับกราฟเปรียบเทียบ
+  const getComparisonChartData = () => {
+    return availableLessons.map(lesson => {
+      const pretest = getPretestResult(lesson);
+      const posttests = getResultsForLesson(lesson);
+      const bestPosttest = posttests.reduce((best, current) => 
+        current.percentage > best.percentage ? current : best, posttests[0]);
+
+      return {
+        lesson: `บทที่ ${lesson}`,
+        'ก่อนเรียน': pretest?.percentage || 0,
+        'หลังเรียน (ดีที่สุด)': bestPosttest?.percentage || 0,
+        improvement: (bestPosttest?.percentage || 0) - (pretest?.percentage || 0)
+      };
+    });
+  };
+
+  // สร้างข้อมูลสำหรับกราฟเส้น
+  const getProgressChartData = () => {
+    const chartData: any[] = [];
+    
+    availableLessons.forEach(lesson => {
+      const pretest = getPretestResult(lesson);
+      const posttests = getResultsForLesson(lesson).reverse(); // เรียงจากเก่าไปใหม่
+      
+      // เพิ่มคะแนนก่อนเรียน
+      if (pretest) {
+        chartData.push({
+          lesson: `บทที่ ${lesson}`,
+          phase: 'ก่อนเรียน',
+          percentage: pretest.percentage,
+          type: 'pretest'
+        });
+      }
+      
+      // เพิ่มคะแนนหลังเรียนแต่ละครั้ง
+      posttests.forEach((result, index) => {
+        chartData.push({
+          lesson: `บทที่ ${lesson}`,
+          phase: `หลังเรียน ครั้งที่ ${index + 1}`,
+          percentage: result.percentage,
+          type: 'posttest'
+        });
+      });
+    });
+    
+    return chartData;
+  };
   // Menu Mode
   if (mode === 'menu') {
     return (
@@ -465,13 +526,15 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     );
   }
 
-  // Comparison Mode
+  // Comparison Mode with Charts
   if (mode === 'comparison') {
     const improvementData = getImprovementData();
+    const comparisonChartData = getComparisonChartData();
+    const progressChartData = getProgressChartData();
 
     return (
       <div className="min-h-screen flex flex-col items-center p-8 bg-gray-100">
-        <div className="w-full max-w-6xl bg-white p-8 rounded-xl shadow-lg">
+        <div className="w-full max-w-7xl bg-white p-8 rounded-xl shadow-lg">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">การพัฒนาการเรียนรู้ {type}</h2>
             <button
@@ -482,7 +545,88 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* สรุปภาพรวม */}
+          <div className="mb-8">
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">สรุปภาพรวม</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {(improvementData.reduce((sum, data) => sum + data.pretest, 0) / improvementData.length || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-700">คะแนนเฉลี่ยก่อนเรียน</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {(improvementData.reduce((sum, data) => sum + data.latestPosttest, 0) / improvementData.length || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-700">คะแนนเฉลี่ยหลังเรียน</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {(improvementData.reduce((sum, data) => sum + data.bestPosttest, 0) / improvementData.length || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-700">คะแนนเฉลี่ยสูงสุด</div>
+                </div>
+                <div className="bg-white p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    +{(improvementData.reduce((sum, data) => sum + Math.max(0, data.improvement), 0) / improvementData.length || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-sm text-gray-700">การพัฒนาเฉลี่ย</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* กราฟเปรียบเทียบก่อน-หลังเรียน */}
+          <div className="mb-8">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">📊 เปรียบเทียบคะแนนก่อนและหลังเรียน</h3>
+            <div className="bg-white p-6 rounded-lg border">
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={comparisonChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="lesson" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip formatter={(value: any, name: any) => [`${value}%`, name]} />
+                  <Legend />
+                  <ReferenceLine y={60} stroke="#ff6b6b" strokeDasharray="5 5" label="เกณฑ์ผ่าน 60%" />
+                  <ReferenceLine y={80} stroke="#51cf66" strokeDasharray="5 5" label="เกณฑ์ดี 80%" />
+                  <Bar dataKey="ก่อนเรียน" fill="#8884d8" name="ก่อนเรียน" />
+                  <Bar dataKey="หลังเรียน (ดีที่สุด)" fill="#82ca9d" name="หลังเรียน (ดีที่สุด)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* กราฟความก้าวหน้าตลอดเวลา */}
+          {progressChartData.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">📈 ความก้าวหน้าตลอดการเรียน</h3>
+              <div className="bg-white p-6 rounded-lg border">
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={progressChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="phase" angle={-45} textAnchor="end" height={100} />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip formatter={(value: any) => [`${value}%`, 'คะแนน']} />
+                    <ReferenceLine y={60} stroke="#ff6b6b" strokeDasharray="5 5" label="เกณฑ์ผ่าน" />
+                    <ReferenceLine y={80} stroke="#51cf66" strokeDasharray="5 5" label="เกณฑ์ดี" />
+                    <Line 
+                      type="monotone" 
+                      dataKey="percentage" 
+                      stroke="#8884d8" 
+                      strokeWidth={3}
+                      dot={{ fill: '#8884d8', strokeWidth: 2, r: 6 }}
+                      activeDot={{ r: 8, stroke: '#8884d8', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* การดำเนินความก้าวหน้า */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {improvementData.map(data => (
               <div key={data.lesson} className="border rounded-lg p-6 bg-gradient-to-br from-blue-50 to-purple-50">
                 <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">บทเรียนที่ {data.lesson}</h3>
@@ -508,6 +652,20 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
                     <span className="font-semibold text-gray-800">{data.attempts} ครั้ง</span>
                   </div>
                   
+                  {/* Mini Progress Bar */}
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>ก่อนเรียน</span>
+                      <span>หลังเรียน</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(data.latestPosttest, 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
                   <div className="border-t pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">การพัฒนา:</span>
@@ -526,34 +684,55 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
                         </span>
                       </div>
                     )}
+                    
+                    {data.improvement === 0 && data.attempts > 0 && (
+                      <div className="mt-2 text-center">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                          📊 คะแนนคงที่
+                        </span>
+                      </div>
+                    )}
+                    
+                    {data.improvement < 0 && (
+                      <div className="mt-2 text-center">
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                          📉 ต้องปรับปรุง
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 text-center">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">สรุปภาพรวม</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {(improvementData.reduce((sum, data) => sum + data.pretest, 0) / improvementData.length || 0).toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-gray-700">คะแนนเฉลี่ยก่อนเรียน</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {(improvementData.reduce((sum, data) => sum + data.latestPosttest, 0) / improvementData.length || 0).toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-gray-700">คะแนนเฉลี่ยหลังเรียน</div>
-                </div>
-                <div className="bg-white p-4 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">
-                    +{(improvementData.reduce((sum, data) => sum + Math.max(0, data.improvement), 0) / improvementData.length || 0).toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-gray-700">การพัฒนาเฉลี่ย</div>
-                </div>
+          {/* ข้อเสนอแนะการเรียนรู้ */}
+          <div className="mt-8">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg border">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">💡 ข้อเสนอแนะ</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {improvementData.map(data => {
+                  let suggestion = '';
+                  let color = '';
+                  
+                  if (data.latestPosttest >= 80) {
+                    suggestion = `ยอดเยี่ยม! คุณมีความเข้าใจในบทเรียนที่ ${data.lesson} เป็นอย่างดี`;
+                    color = 'text-green-600 bg-green-50';
+                  } else if (data.latestPosttest >= 60) {
+                    suggestion = `ดี! แต่ยังสามารถพัฒนาในบทเรียนที่ ${data.lesson} ได้อีก`;
+                    color = 'text-yellow-600 bg-yellow-50';
+                  } else {
+                    suggestion = `ควรทบทวนบทเรียนที่ ${data.lesson} และลองทำข้อสอบใหม่`;
+                    color = 'text-red-600 bg-red-50';
+                  }
+
+                  return (
+                    <div key={data.lesson} className={`p-3 rounded-lg border ${color}`}>
+                      <div className="font-medium text-sm">บทเรียนที่ {data.lesson}</div>
+                      <div className="text-xs mt-1">{suggestion}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

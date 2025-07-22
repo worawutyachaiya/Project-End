@@ -389,13 +389,16 @@ function AdminVideoContent() {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
+         {/* Sidebar */}
         <aside className="w-64 bg-white/50 backdrop-blur-sm p-4 shadow text-black">
           <ul className="space-y-2">
             <li className="pl-4">
               <a href="/admin/quiz" className="hover:text-blue-600">จัดการข้อสอบ</a>
             </li>
             <li className="pl-4 font-bold text-blue-600">จัดการวิดีโอ</li>
+            <li className="pl-4">
+              <a href="/admin/students" className="hover:text-blue-600">ข้อมูลนักเรียน</a>
+            </li>
           </ul>
         </aside>
 

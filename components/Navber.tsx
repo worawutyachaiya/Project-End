@@ -125,7 +125,7 @@ const Navbar = () => {
             </li>
           </ul>
 
-          {/* ช่องค้นหาและปุ่ม Login/Logout */}
+          {/* ช่องค้นหาและปุ่ม Login/Register/Logout */}
           <div className="flex items-center space-x-8 mt-4 lg:mt-0 flex-col lg:flex-row w-full lg:w-auto">
             <div className="relative flex items-center w-full lg:w-64 mb-4 lg:mb-0">
               <svg
@@ -145,7 +145,7 @@ const Navbar = () => {
               />
             </div>
             
-            <div>
+            <div className="flex items-center space-x-3">
               {isLoading ? (
                 // แสดง loading state
                 <div className="bg-gray-400 text-white font-bold py-2 px-4 rounded-full w-full lg:w-auto animate-pulse">
@@ -160,12 +160,19 @@ const Navbar = () => {
                   Logout
                 </button>
               ) : (
-                // แสดงปุ่ม Login เมื่อยังไม่ได้ล็อคอิน
-                <Link href="/login">
-                  <button className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto">
-                    Login
-                  </button>
-                </Link>
+                // แสดงปุ่ม Login และ Register เมื่อยังไม่ได้ล็อคอิน
+                <>
+                  <Link href="/register">
+                    <button className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto">
+                      สมัครสมาชิก
+                    </button>
+                  </Link>
+                  <Link href="/login">
+                    <button className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto">
+                      เข้าสู่ระบบ
+                    </button>
+                  </Link>
+                </>
               )}
             </div>
           </div>
