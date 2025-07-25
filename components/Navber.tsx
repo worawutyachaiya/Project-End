@@ -5,13 +5,22 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface UserData {
+  firstName: string;
+  lastName: string;
+  studentId: string;
+  email: string;
+}
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
 
-  // ตรวจสอบสถานะการล็อคอิน
+  // ตรวจสอบสถานะการล็อคอินและดึงข้อมูลผู้ใช้
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
@@ -21,13 +30,17 @@ const Navbar = () => {
         });
         
         if (response.ok) {
+          const data = await response.json();
           setIsLoggedIn(true);
+          setUserData(data.user);
         } else {
           setIsLoggedIn(false);
+          setUserData(null);
         }
       } catch (error) {
         console.error('Error checking auth status:', error);
         setIsLoggedIn(false);
+        setUserData(null);
       } finally {
         setIsLoading(false);
       }
@@ -46,10 +59,10 @@ const Navbar = () => {
 
       if (response.ok) {
         setIsLoggedIn(false);
-        router.push('/'); // เปลี่ยนเส้นทางไปหน้าแรก
-        router.refresh(); // รีเฟรชหน้า
-        
-        // เพิ่มการ reload หน้าเว็บ
+        setUserData(null);
+        setShowUserMenu(false);
+        router.push('/');
+        router.refresh();
         window.location.reload();
       } else {
         console.error('Logout failed');
@@ -125,8 +138,9 @@ const Navbar = () => {
             </li>
           </ul>
 
-          {/* ช่องค้นหาและปุ่ม Login/Register/Logout */}
-          <div className="flex items-center space-x-8 mt-4 lg:mt-0 flex-col lg:flex-row w-full lg:w-auto">
+          {/* ช่องค้นหาและส่วนผู้ใช้ */}
+          <div className="flex items-center space-x-6 mt-4 lg:mt-0 flex-col lg:flex-row w-full lg:w-auto">
+            {/* ช่องค้นหา */}
             <div className="relative flex items-center w-full lg:w-64 mb-4 lg:mb-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -145,34 +159,127 @@ const Navbar = () => {
               />
             </div>
             
-            <div className="flex items-center space-x-3">
+            {/* ส่วนผู้ใช้ */}
+            <div className="flex items-center">
               {isLoading ? (
                 // แสดง loading state
-                <div className="bg-gray-400 text-white font-bold py-2 px-4 rounded-full w-full lg:w-auto animate-pulse">
-                  Loading...
+                <div className="bg-gray-400 text-white font-bold py-2 px-6 rounded-lg animate-pulse">
+                  กำลังโหลด...
                 </div>
-              ) : isLoggedIn ? (
-                // แสดงปุ่ม Logout เมื่อล็อคอินแล้ว
-                <button
-                  onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto"
-                >
-                  Logout
-                </button>
+              ) : isLoggedIn && userData ? (
+                // แสดงข้อมูลผู้ใช้เมื่อล็อคอินแล้ว
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center space-x-3 bg-gradient-to-r from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 border border-teal-200 text-teal-700 px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md group"
+                  >
+                    {/* User Icon */}
+                    <div className="flex items-center justify-center w-8 h-8 bg-teal-500 rounded-md">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    
+                    {/* User info */}
+                    <div className="text-left hidden lg:block">
+                      <div className="text-sm font-semibold text-gray-800">
+                        {userData.firstName} {userData.lastName}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {userData.studentId}
+                      </div>
+                    </div>
+                    
+                    {/* Dropdown arrow */}
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        showUserMenu ? 'rotate-180' : ''
+                      } group-hover:text-teal-600`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 py-3 z-50 animate-in slide-in-from-top-2 duration-200">
+                      {/* User Header */}
+                      <div className="px-5 py-3 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg">
+                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-900 text-base">
+                              {userData.firstName} {userData.lastName}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              รหัสนักศึกษา: {userData.studentId}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {userData.email}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Menu items */}
+                      <div className="py-2">
+                        <Link
+                          href="/profile"
+                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <div className="w-5 h-5 text-gray-400">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="font-medium">จัดการโปรไฟล์</span>
+                        </Link>
+                        
+
+                      </div>
+                      
+                      {/* Logout section */}
+                      <div className="border-t border-gray-100 pt-2">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center space-x-3 w-full px-5 py-3 text-red-600 hover:bg-red-50 transition-colors duration-200"
+                        >
+                          <div className="w-5 h-5">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span className="font-medium">ออกจากระบบ</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
                 // แสดงปุ่ม Login และ Register เมื่อยังไม่ได้ล็อคอิน
-                <>
+                <div className="flex items-center space-x-3">
                   <Link href="/register">
-                    <button className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto">
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-5 rounded-lg border border-gray-200 transition-all duration-200 hover:shadow-md">
                       สมัครสมาชิก
                     </button>
                   </Link>
                   <Link href="/login">
-                    <button className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-200 w-full lg:w-auto">
+                    <button className="bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-medium py-2 px-5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                       เข้าสู่ระบบ
                     </button>
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </div>
