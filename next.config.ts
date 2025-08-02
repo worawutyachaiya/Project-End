@@ -14,11 +14,10 @@ const nextConfig: NextConfig = {
   images: {
     domains: [
       'localhost', 
-      'img.youtube.com',           // สำหรับ YouTube thumbnails
-      'i.ytimg.com',               // YouTube thumbnails อีกรูปแบบ
-      'via.placeholder.com'        // สำหรับ placeholder images (optional)
+      'img.youtube.com',
+      'i.ytimg.com',
+      'via.placeholder.com'
     ],
-    // เพิ่ม remote patterns สำหรับ Next.js 13+ (แนะนำ)
     remotePatterns: [
       {
         protocol: 'https',
@@ -47,11 +46,8 @@ const nextConfig: NextConfig = {
   
   // การตั้งค่าสำหรับ file uploads
   experimental: {
-    // เพิ่ม serverActions เพื่อใช้ Server Actions (optional)
+    // เอา serverComponentsExternalPackages ออก เพราะย้ายไป serverExternalPackages แล้ว
     serverActions: {},
-    
-    // เพิ่ม serverComponentsExternalPackages หากจำเป็น
-    serverComponentsExternalPackages: ['@prisma/client'],
   },
   
   // เพิ่ม webpack config สำหรับ handle บางไฟล์ที่อาจมีปัญหา

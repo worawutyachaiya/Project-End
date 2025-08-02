@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // เปลี่ยนเป็น Promise
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: idParam } = await params // await params
+    const id = parseInt(idParam)
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'ID ไม่ถูกต้อง' },
@@ -67,10 +68,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // เปลี่ยนเป็น Promise
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: idParam } = await params // await params
+    const id = parseInt(idParam)
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'ID ไม่ถูกต้อง' },
