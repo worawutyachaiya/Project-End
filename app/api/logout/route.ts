@@ -18,6 +18,7 @@ export async function POST() {
     return response
 
   } catch (error) {
+    console.error('Logout error:', error)
     return NextResponse.json(
       { error: 'เกิดข้อผิดพลาดในการออกจากระบบ' },
       { status: 500 }

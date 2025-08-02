@@ -1,6 +1,6 @@
 // app/cssvideo/page.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import RouteGuard from '@/components/routeGuard'
@@ -16,8 +16,14 @@ interface Video {
   duration?: string;
 }
 
+interface UserProgress {
+  lesson: number;
+  skipped: boolean;
+  completed: boolean;
+}
+
 export default function CSSVideoPage() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [videos, setVideos] = useState<Video[]>([]);
   const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
@@ -30,27 +36,22 @@ export default function CSSVideoPage() {
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchSkippedLessons();
-      fetchVideos();
-    }
-  }, [user]);
-
-  const fetchSkippedLessons = async () => {
+  const fetchSkippedLessons = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
-      const response = await fetch(`/api/user-progress?userId=${user?.id}&courseType=CSS`);
+      const response = await fetch(`/api/user-progress?userId=${user.id}&courseType=CSS`);
       if (response.ok) {
-        const data = await response.json();
-        const skipped = data.filter((progress: any) => progress.skipped).map((progress: any) => progress.lesson);
-        const completed = data.filter((progress: any) => progress.completed).map((progress: any) => progress.lesson);
+        const data: UserProgress[] = await response.json();
+        const skipped = data.filter((progress) => progress.skipped).map((progress) => progress.lesson);
+        const completed = data.filter((progress) => progress.completed).map((progress) => progress.lesson);
         setSkippedLessons(skipped);
         setCompletedLessons(completed);
       }
     } catch (error) {
       console.error('Error fetching skipped lessons:', error);
     }
-  };
+  }, [user?.id]);
 
   // ฟังก์ชันดึงระยะเวลาจริงจาก YouTube
   const getYouTubeDuration = async (videoId: string): Promise<string> => {
@@ -64,7 +65,7 @@ export default function CSSVideoPage() {
       // return formatDuration(data.items[0]?.contentDetails?.duration);
       
       // สำหรับตอนนี้ใช้ fallback duration
-      return await getFallbackDuration(videoId);
+      return await getFallbackDuration();
     } catch (error) {
       console.error('Error fetching YouTube duration:', error);
       return '00:00';
@@ -72,7 +73,7 @@ export default function CSSVideoPage() {
   };
 
   // ฟังก์ชัน fallback สำหรับระยะเวลา
-  const getFallbackDuration = async (videoId: string): Promise<string> => {
+  const getFallbackDuration = async (): Promise<string> => {
     const durations: { [key: string]: string } = {
       'default1': '18:45',
       'default2': '22:30',
@@ -89,11 +90,27 @@ export default function CSSVideoPage() {
     return durations[randomKey];
   };
 
-  const fetchVideos = async () => {
+  const extractVideoId = useCallback((url: string): string => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return '';
+  }, []);
+
+  const fetchVideos = useCallback(async () => {
     try {
       const response = await fetch('/api/videos');
       if (response.ok) {
-        const data = await response.json();
+        const data: Video[] = await response.json();
         // กรองเฉพาะวิดีโอที่เกี่ยวกับ CSS
         const cssVideos = data.filter((video: Video) => 
           video.title.toLowerCase().includes('css') || 
@@ -119,23 +136,19 @@ export default function CSSVideoPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [extractVideoId]);
 
-  const extractVideoId = (url: string): string => {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/v\/([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
+  const getYouTubeEmbedUrl = useCallback((url: string): string => {
+    const videoId = extractVideoId(url);
+    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : url;
+  }, [extractVideoId]);
+
+  useEffect(() => {
+    if (user) {
+      fetchSkippedLessons();
+      fetchVideos();
     }
-    return '';
-  };
+  }, [user, fetchSkippedLessons, fetchVideos]);
 
   useEffect(() => {
     // กรองวิดีโอที่ไม่ใช่บทเรียนที่ข้าม
@@ -148,12 +161,7 @@ export default function CSSVideoPage() {
       setVideoDescription(filtered[0].description);
       setCurrentVideoIndex(0);
     }
-  }, [videos, skippedLessons]);
-
-  const getYouTubeEmbedUrl = (url: string): string => {
-    const videoId = extractVideoId(url);
-    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : url;
-  };
+  }, [videos, skippedLessons, getYouTubeEmbedUrl]);
 
   const handleVideoSelect = (video: Video, index: number) => {
     setVideoSrc(getYouTubeEmbedUrl(video.youtubeUrl));
@@ -169,12 +177,14 @@ export default function CSSVideoPage() {
   };
 
   const markLessonComplete = async (lesson: number) => {
+    if (!user?.id) return;
+    
     try {
       await fetch('/api/user-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user?.id,
+          userId: user.id,
           courseType: 'CSS',
           lesson: lesson,
           completed: true
@@ -193,21 +203,6 @@ export default function CSSVideoPage() {
     if (index === currentVideoIndex) return 'current';
     if (index < currentVideoIndex) return 'completed';
     return 'pending';
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-        </div>;
-      case 'current':
-        return <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>;
-      default:
-        return <div className="w-3 h-3 bg-gray-300 rounded-full"></div>;
-    }
   };
 
   if (loading) {

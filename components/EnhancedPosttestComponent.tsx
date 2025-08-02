@@ -1,6 +1,6 @@
-// components/EnhancedPosttestComponent.tsx - Part 1 (ครึ่งแรก)
+// components/EnhancedPosttestComponent.tsx - Fixed version
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { 
@@ -41,6 +41,29 @@ type PosttestProps = {
   title: string;
 };
 
+interface ChartDataPoint {
+  lesson: string;
+  'ก่อนเรียน': number;
+  'หลังเรียน (ดีที่สุด)': number;
+  improvement: number;
+}
+
+interface ProgressDataPoint {
+  lesson: string;
+  phase: string;
+  percentage: number;
+  type: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+  }>;
+  label?: string;
+}
+
 export default function EnhancedPosttestComponent({ type, title }: PosttestProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -55,15 +78,7 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
   const [pretestResults, setPretestResults] = useState<QuizResult[]>([]);
   const [availableLessons, setAvailableLessons] = useState<number[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchAvailableLessons();
-      fetchResults();
-      fetchPretestResults();
-    }
-  }, [user]);
-
-  const fetchAvailableLessons = async () => {
+  const fetchAvailableLessons = useCallback(async () => {
     try {
       const response = await fetch(`/api/available-lessons?type=${type}&phase=pre`);
       if (response.ok) {
@@ -73,9 +88,9 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     } catch (error) {
       console.error('Error fetching available lessons:', error);
     }
-  };
+  }, [type]);
 
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     try {
       const response = await fetch(`/api/quiz-results?userId=${user?.id}&quizType=${type}&phase=post`);
       if (response.ok) {
@@ -85,9 +100,9 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     } catch (error) {
       console.error('Error fetching results:', error);
     }
-  };
+  }, [user?.id, type]);
 
-  const fetchPretestResults = async () => {
+  const fetchPretestResults = useCallback(async () => {
     try {
       const response = await fetch(`/api/quiz-results?userId=${user?.id}&quizType=${type}&phase=pre`);
       if (response.ok) {
@@ -97,7 +112,15 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     } catch (error) {
       console.error('Error fetching pretest results:', error);
     }
-  };
+  }, [user?.id, type]);
+
+  useEffect(() => {
+    if (user) {
+      fetchAvailableLessons();
+      fetchResults();
+      fetchPretestResults();
+    }
+  }, [user, fetchAvailableLessons, fetchResults, fetchPretestResults]);
 
   const fetchQuizzes = async (lesson: number) => {
     try {
@@ -130,7 +153,6 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
   };
 
   const calculateScore = () => {
-    let correctCount = 0;
     let totalScore = 0;
 
     quizzes.forEach((quiz, index) => {
@@ -138,7 +160,6 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
       const correctAnswer = quiz.choices[parseInt(quiz.correct) - 1];
       
       if (userAnswer === correctAnswer) {
-        correctCount++;
         totalScore += parseInt(quiz.score);
       }
     });
@@ -234,7 +255,7 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
   };
 
   // สร้างข้อมูลสำหรับกราฟเปรียบเทียบ
-  const getComparisonChartData = () => {
+  const getComparisonChartData = (): ChartDataPoint[] => {
     return availableLessons.map(lesson => {
       const pretest = getPretestResult(lesson);
       const posttests = getResultsForLesson(lesson);
@@ -251,8 +272,8 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
   };
 
   // สร้างข้อมูลสำหรับกราฟเส้น
-  const getProgressChartData = () => {
-    const chartData: any[] = [];
+  const getProgressChartData = (): ProgressDataPoint[] => {
+    const chartData: ProgressDataPoint[] = [];
     
     availableLessons.forEach(lesson => {
       const pretest = getPretestResult(lesson);
@@ -281,6 +302,35 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
     
     return chartData;
   };
+
+  // Custom Tooltip Components
+  const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded shadow">
+          <p className="font-medium">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ color: entry.name === 'ก่อนเรียน' ? '#8884d8' : '#82ca9d' }}>
+              {entry.name}: {entry.value}%
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const ProgressTooltip = ({ active, payload }: TooltipProps) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded shadow">
+          <p className="font-medium">คะแนน: {payload[0].value}%</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   // Menu Mode
   if (mode === 'menu') {
     return (
@@ -587,7 +637,7 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="lesson" />
                   <YAxis domain={[0, 100]} />
-                  <Tooltip formatter={(value: any, name: any) => [`${value}%`, name]} />
+                  <Tooltip content={<CustomTooltip />} />
                   <Legend />
                   <ReferenceLine y={60} stroke="#ff6b6b" strokeDasharray="5 5" label="เกณฑ์ผ่าน 60%" />
                   <ReferenceLine y={80} stroke="#51cf66" strokeDasharray="5 5" label="เกณฑ์ดี 80%" />
@@ -608,7 +658,7 @@ export default function EnhancedPosttestComponent({ type, title }: PosttestProps
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="phase" angle={-45} textAnchor="end" height={100} />
                     <YAxis domain={[0, 100]} />
-                    <Tooltip formatter={(value: any) => [`${value}%`, 'คะแนน']} />
+                    <Tooltip content={<ProgressTooltip />} />
                     <ReferenceLine y={60} stroke="#ff6b6b" strokeDasharray="5 5" label="เกณฑ์ผ่าน" />
                     <ReferenceLine y={80} stroke="#51cf66" strokeDasharray="5 5" label="เกณฑ์ดี" />
                     <Line 

@@ -1,6 +1,6 @@
 // components/PretestChecker.tsx
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 
@@ -24,17 +24,13 @@ export default function PretestChecker({ courseType, children }: PretestCheckerP
     error: null
   });
 
-  useEffect(() => {
-    if (user) {
-      checkPretestStatus();
-    }
-  }, [user]);
-
-  const checkPretestStatus = async () => {
+  const checkPretestStatus = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       setPretestStatus(prev => ({ ...prev, loading: true, error: null }));
       
-      const response = await fetch(`/api/pretest-status?courseType=${courseType}&userId=${user?.id}`);
+      const response = await fetch(`/api/pretest-status?courseType=${courseType}&userId=${user.id}`);
       
       if (!response.ok) {
         throw new Error('Failed to check pretest status');
@@ -61,7 +57,13 @@ export default function PretestChecker({ courseType, children }: PretestCheckerP
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  };
+  }, [courseType, user?.id, router]);
+
+  useEffect(() => {
+    if (user) {
+      checkPretestStatus();
+    }
+  }, [user, checkPretestStatus]);
 
   // Loading state
   if (pretestStatus.loading) {

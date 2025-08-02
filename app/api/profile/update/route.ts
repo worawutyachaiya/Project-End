@@ -5,6 +5,13 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Type for JWT payload
+interface JWTPayload {
+  userId: number;
+  iat?: number;
+  exp?: number;
+}
+
 export async function PUT(request: NextRequest) {
   try {
     // ตรวจสอบ token
@@ -13,7 +20,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JWTPayload;
     
     // รับข้อมูลจาก request body
     const { firstName, lastName, email, academicYear } = await request.json();
@@ -28,7 +35,13 @@ export async function PUT(request: NextRequest) {
       }
     });
 
-    
+    // ถ้าพบอีเมลซ้ำ ให้ส่งข้อผิดพลาด
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'อีเมลนี้ถูกใช้งานแล้ว' },
+        { status: 400 }
+      );
+    }
 
     // อัพเดทข้อมูลผู้ใช้
     const updatedUser = await prisma.user.update({

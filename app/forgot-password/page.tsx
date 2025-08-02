@@ -2,10 +2,8 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useRouter } from "next/navigation"
 
 const ForgotPassword = () => {
-  const router = useRouter()
   const [studentId, setStudentId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -63,7 +61,8 @@ const ForgotPassword = () => {
           setResetUrl(data.resetUrl) // สำหรับ development mode
         }
       }
-    } catch (error) {
+    } catch (requestError) {
+      console.error('Forgot password request error:', requestError)
       setError("เกิดข้อผิดพลาดในการส่งคำขอ")
     } finally {
       setIsLoading(false)

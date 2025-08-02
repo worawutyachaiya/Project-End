@@ -1,14 +1,22 @@
-//app\page.tsx
+//app/page.tsx
 import Card from "@/components/Carditem"
 import News from "@/components/News"
 import Link from "next/link"
+import Image from "next/image"
 
 const page = () => {
   return (
     <div>
       <header>
         <div className="container flex justify-center">
-          <img src="/img/banner.png" alt="Banner" />
+          <Image 
+            src="/img/banner.png" 
+            alt="Banner" 
+            width={1200}
+            height={400}
+            priority
+            className="w-full h-auto max-w-full"
+          />
         </div>  
       </header>
       

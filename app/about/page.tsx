@@ -1,6 +1,8 @@
 //app/about/page.tsx
 "use client"
 
+import Image from 'next/image'
+
 const About = () => {
   return (
     <div className="min-h-screen w-full  px-4 py-12">
@@ -16,10 +18,13 @@ const About = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
           {/* ผู้พัฒนาคนที่ 1 */}
           <div className="bg-gray-50 rounded-2xl shadow-md p-6 flex flex-col items-center">
-            <img
+            <Image
               src="/img/get.jpg" // เปลี่ยนเป็น path รูปจริงของคุณ
               alt="Developer 1"
+              width={128}
+              height={128}
               className="w-32 h-32 rounded-full object-cover mb-4"
+              priority
             />
             <h2 className="text-xl font-semibold text-gray-800">วรวุฒิ ยาชัยยะ</h2>
             <p className="text-gray-600 mt-2 text-center">
@@ -29,10 +34,13 @@ const About = () => {
 
           {/* ผู้พัฒนาคนที่ 2 */}
           <div className="bg-gray-50 rounded-2xl shadow-md p-6 flex flex-col items-center">
-            <img
+            <Image
               src="/img/fuse.jpg" // เปลี่ยนเป็น path รูปจริงของคุณ
               alt="Developer 2"
+              width={128}
+              height={128}
               className="w-32 h-32 rounded-full object-cover mb-4"
+              priority
             />
             <h2 className="text-xl font-semibold text-gray-800">ปรเมศวร์ สุขรอด</h2>
             <p className="text-gray-600 mt-2 text-center">

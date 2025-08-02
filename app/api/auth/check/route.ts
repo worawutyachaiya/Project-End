@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 
+// Type for JWT payload
+interface JWTPayload {
+  userId: number;
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
+
 export async function GET() {
   try {
     const cookieStore = cookies()
@@ -15,7 +26,7 @@ export async function GET() {
       )
     }
 
-    const decoded = jwt.verify(token.value, process.env.JWT_SECRET || 'your-secret-key') as any
+    const decoded = jwt.verify(token.value, process.env.JWT_SECRET || 'your-secret-key') as JWTPayload
 
     return NextResponse.json({
       user: {
@@ -29,6 +40,7 @@ export async function GET() {
     })
 
   } catch (error) {
+    console.error('Token verification failed:', error)
     return NextResponse.json(
       { error: 'Token ไม่ถูกต้อง' },
       { status: 401 }

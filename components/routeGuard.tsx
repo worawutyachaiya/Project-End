@@ -11,7 +11,7 @@ interface RouteGuardProps {
 }
 
 const RouteGuard = ({ children, requireAdmin = false, requireAuth = true }: RouteGuardProps) => {
-  const { user, isAuthenticated, isLoading, isAdmin } = useAuth()
+  const { isAuthenticated, isLoading, isAdmin } = useAuth() // Removed 'user'
   const router = useRouter()
 
   useEffect(() => {
@@ -30,8 +30,8 @@ const RouteGuard = ({ children, requireAdmin = false, requireAuth = true }: Rout
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     )
   }

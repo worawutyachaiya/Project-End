@@ -1,22 +1,35 @@
 //app/reset-password/page.tsx
 "use client"
 
-import { useState, useEffect, useMemo, Suspense } from "react"
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+
+interface User {
+  id: number;
+  firstName: string;
+  lastName: string;
+  studentId: string;
+  email: string;
+}
+
+interface FormData {
+  password: string;
+  confirmPassword: string;
+}
 
 const ResetPasswordContent = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     password: '',
     confirmPassword: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
   const [error, setError] = useState('')
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [tokenValid, setTokenValid] = useState(false)
 
   const particles = useMemo(() => {
@@ -28,18 +41,13 @@ const ResetPasswordContent = () => {
     }))
   }, [])
 
-  // ตรวจสอบ token เมื่อ component mount
-  useEffect(() => {
+  const validateToken = useCallback(async () => {
     if (!token) {
       setError('ไม่พบ token สำหรับรีเซ็ตรหัสผ่าน')
       setIsValidating(false)
       return
     }
 
-    validateToken()
-  }, [token])
-
-  const validateToken = async () => {
     try {
       const res = await fetch(`/api/auth/reset-password?token=${token}`)
       const data = await res.json()
@@ -51,11 +59,17 @@ const ResetPasswordContent = () => {
         setError(data.error || 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว')
       }
     } catch (error) {
+      console.error('Error validating token:', error)
       setError('เกิดข้อผิดพลาดในการตรวจสอบลิงก์')
     } finally {
       setIsValidating(false)
     }
-  }
+  }, [token])
+
+  // ตรวจสอบ token เมื่อ component mount
+  useEffect(() => {
+    validateToken()
+  }, [validateToken])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -106,6 +120,7 @@ const ResetPasswordContent = () => {
         router.push('/login')
       }
     } catch (error) {
+      console.error('Error resetting password:', error)
       setError("เกิดข้อผิดพลาดในการรีเซ็ตรหัสผ่าน")
     } finally {
       setIsLoading(false)

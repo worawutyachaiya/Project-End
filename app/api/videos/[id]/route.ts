@@ -1,31 +1,52 @@
-// app/api/videos/[id]/route.js
-import { NextResponse } from 'next/server';
+// app/api/videos/[id]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { writeFile, unlink } from 'fs/promises';
 import path from 'path';
 
 const prisma = new PrismaClient();
 
+// Types
+interface RouteParams {
+  params: {
+    id: string;
+  };
+}
+
+interface UpdateData {
+  title: string;
+  description: string;
+  youtubeUrl: string;
+  courseType?: string;
+  lesson?: number;
+  image?: string;
+}
+
 // PUT - อัพเดทวิดีโอ
-export async function PUT(request: { formData: () => any; }, { params }: any) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const formData = await request.formData();
-    const title = formData.get('title');
-    const description = formData.get('description');
-    const youtubeUrl = formData.get('youtubeUrl');
-    const image = formData.get('image');
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const youtubeUrl = formData.get('youtubeUrl') as string;
+    const courseType = formData.get('courseType') as string;
+    const lesson = formData.get('lesson') as string;
+    const image = formData.get('image') as File | null;
 
-    let updateData: {
-      title: any;
-      description: any;
-      youtubeUrl: any;
-      image?: string;
-    } = {
+    const updateData: UpdateData = {
       title,
       description,
       youtubeUrl,
     };
+
+    // เพิ่ม courseType และ lesson ถ้ามี
+    if (courseType) {
+      updateData.courseType = courseType;
+    }
+    if (lesson) {
+      updateData.lesson = parseInt(lesson);
+    }
 
     // อัพโหลดรูปภาพใหม่ (ถ้ามี)
     if (image && image.size > 0) {
@@ -46,14 +67,15 @@ export async function PUT(request: { formData: () => any; }, { params }: any) {
 
     return NextResponse.json(video);
   } catch (error) {
+    console.error('Error updating video:', error);
     return NextResponse.json({ error: 'Failed to update video' }, { status: 500 });
   }
 }
 
 // DELETE - ลบวิดีโอ
-export async function DELETE(request: any, { params }: any) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // ลบรูปภาพ (ถ้ามี)
     const video = await prisma.video.findUnique({
@@ -64,8 +86,8 @@ export async function DELETE(request: any, { params }: any) {
       const filepath = path.join(process.cwd(), 'public', video.image);
       try {
         await unlink(filepath);
-      } catch (error) {
-        console.log('Failed to delete image file:', error);
+      } catch (unlinkError) {
+        console.error('Failed to delete image file:', unlinkError);
       }
     }
 
@@ -75,6 +97,7 @@ export async function DELETE(request: any, { params }: any) {
 
     return NextResponse.json({ message: 'Video deleted successfully' });
   } catch (error) {
+    console.error('Error deleting video:', error);
     return NextResponse.json({ error: 'Failed to delete video' }, { status: 500 });
   }
 }

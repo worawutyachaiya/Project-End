@@ -2,9 +2,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Types
+interface QuizResultData {
+  userId: string;
+  studentId: string;
+  quizType: string;
+  phase: string;
+  lesson: string;
+  score: string;
+  totalScore: string;
+  percentage: string;
+  passed?: boolean;
+  answers?: unknown;
+}
+
+interface WhereClause {
+  userId?: number;
+  studentId?: string;
+  quizType?: string;
+  phase?: string;
+  lesson?: number;
+}
+
+interface QuizResultWithAttempt {
+  id: number;
+  lesson: number;
+  score: number;
+  totalScore: number;
+  percentage: number;
+  passed: boolean;
+  completedAt: Date;
+  phase: string;
+  quizType: string;
+  userId: number;
+  studentId: string;
+  answers?: unknown;
+  attempt: number;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body: QuizResultData = await request.json()
     const { 
       userId,
       studentId, 
@@ -27,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate lesson number
-    if (lesson < 1 || lesson > 10) {
+    if (parseInt(lesson) < 1 || parseInt(lesson) > 10) {
       return NextResponse.json(
         { error: 'บทเรียนต้องอยู่ระหว่าง 1-10' },
         { status: 400 }
@@ -160,7 +198,7 @@ export async function GET(request: NextRequest) {
     const lesson = searchParams.get('lesson')
     const latest = searchParams.get('latest') // ดึงเฉพาะครั้งล่าสุด
 
-    let whereClause: any = {}
+    const whereClause: WhereClause = {}
     
     if (userId) whereClause.userId = parseInt(userId)
     if (studentId) whereClause.studentId = studentId
@@ -192,7 +230,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Group by lesson และเอาเฉพาะครั้งล่าสุด
-      const latestResults = results.reduce((acc: any[], current) => {
+      const latestResults = results.reduce((acc: typeof results, current) => {
         const existing = acc.find(item => item.lesson === current.lesson)
         if (!existing) {
           acc.push(current)
@@ -227,7 +265,7 @@ export async function GET(request: NextRequest) {
     })
 
     // เพิ่ม attempt number สำหรับ posttest
-    const resultsWithAttempt = []
+    const resultsWithAttempt: QuizResultWithAttempt[] = []
     for (let i = 0; i < results.length; i++) {
       const result = results[i]
       let attempt = 1

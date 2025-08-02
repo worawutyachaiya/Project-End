@@ -1,7 +1,7 @@
 // app/admin/students/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import RouteGuard from '@/components/routeGuard';
@@ -28,13 +28,27 @@ interface CourseStats {
   posttestAttempts: number;
 }
 
+interface QuizResult {
+  score: number;
+  totalScore: number;
+  percentage: number;
+  completedAt: string;
+}
+
+interface DetailedResult {
+  quizType: string;
+  lesson: number;
+  pretest: QuizResult | null;
+  posttests: QuizResult[];
+}
+
 interface StudentDetail {
   id: number;
   firstName: string;
   lastName: string;
   studentId: string;
   academicYear: number;
-  detailedResults: any[];
+  detailedResults: DetailedResult[];
 }
 
 function AdminStudentsContent() {
@@ -55,11 +69,7 @@ function AdminStudentsContent() {
   const [selectedStudent, setSelectedStudent] = useState<StudentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  useEffect(() => {
-    fetchStudents();
-  }, [selectedYear, searchTerm, selectedCourse]);
-
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -75,12 +85,16 @@ function AdminStudentsContent() {
       const data = await response.json();
       setStudents(data.students);
       setAcademicYears(data.academicYears);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear, searchTerm, selectedCourse]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
 
   const fetchStudentDetail = async (studentId: string) => {
     try {
@@ -100,7 +114,8 @@ function AdminStudentsContent() {
       const data = await response.json();
       setSelectedStudent(data);
       setShowDetail(true);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error fetching student details:', error);
       alert('เกิดข้อผิดพลาดในการโหลดรายละเอียด');
     } finally {
       setDetailLoading(false);
@@ -364,7 +379,7 @@ function AdminStudentsContent() {
                         </h4>
                         {result.posttests.length > 0 ? (
                           <div className="space-y-2">
-                            {result.posttests.slice(0, 3).map((posttest: any, idx: number) => (
+                            {result.posttests.slice(0, 3).map((posttest: QuizResult, idx: number) => (
                               <div key={idx} className="text-sm">
                                 <p>ครั้งที่ {result.posttests.length - idx}: {posttest.score}/{posttest.totalScore} ({posttest.percentage}%)</p>
                                 <p className="text-xs text-gray-600">

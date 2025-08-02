@@ -2,6 +2,46 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Types
+interface WhereClause {
+  role: string;
+  academicYear?: number;
+  OR?: Array<{
+    firstName?: { contains: string; mode: 'insensitive' };
+    lastName?: { contains: string; mode: 'insensitive' };
+    studentId?: { contains: string };
+  }>;
+}
+
+interface QuizResult {
+  id: number;
+  quizType: string;
+  phase: string;
+  lesson: number;
+  score: number;
+  totalScore: number;
+  percentage: number;
+  passed: boolean;
+  completedAt: Date;
+  answers?: unknown;
+}
+
+interface CourseStats {
+  totalLessons: number;
+  completedPosttests: number;
+  avgPretest: number;
+  avgPosttest: number;
+  improvement: number;
+  posttestAttempts: number;
+}
+
+interface GroupedResult {
+  quizType: string;
+  lesson: number;
+  pretest: QuizResult | null;
+  posttests: QuizResult[];
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -10,7 +50,7 @@ export async function GET(request: NextRequest) {
     const courseType = searchParams.get('courseType') // HTML or CSS
     
     // Build where clause
-    let whereClause: any = {
+    const whereClause: WhereClause = {
       role: 'student'
     }
     
@@ -67,7 +107,7 @@ export async function GET(request: NextRequest) {
       const htmlResults = student.quizResults.filter(r => r.quizType === 'HTML')
       const cssResults = student.quizResults.filter(r => r.quizType === 'CSS')
       
-      const getStatsForType = (results: any[]) => {
+      const getStatsForType = (results: QuizResult[]): CourseStats => {
         const pretests = results.filter(r => r.phase === 'pre')
         const posttests = results.filter(r => r.phase === 'post')
         
@@ -75,7 +115,7 @@ export async function GET(request: NextRequest) {
         const latestPosttests = pretests.map(pretest => {
           const lessonPosttests = posttests.filter(p => p.lesson === pretest.lesson)
           return lessonPosttests.length > 0 ? lessonPosttests[0] : null
-        }).filter(Boolean)
+        }).filter((test): test is QuizResult => test !== null)
 
         const avgPretest = pretests.length > 0 
           ? pretests.reduce((sum, r) => sum + r.percentage, 0) / pretests.length 
@@ -178,7 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Group results by course type and lesson
-    const groupedResults = student.quizResults.reduce((acc: any, result) => {
+    const groupedResults = student.quizResults.reduce((acc: Record<string, GroupedResult>, result) => {
       const key = `${result.quizType}-${result.lesson}`
       if (!acc[key]) {
         acc[key] = {
@@ -199,7 +239,7 @@ export async function POST(request: NextRequest) {
     }, {})
 
     return NextResponse.json({
-      student,
+      ...student,
       detailedResults: Object.values(groupedResults)
     })
   } catch (error) {

@@ -1,6 +1,6 @@
 // components/PretestQuizComponent.tsx - Updated with dark text
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 
@@ -29,21 +29,11 @@ export default function PretestQuizComponent({ type, title }: PretestQuizProps) 
   const [error, setError] = useState<string | null>(null);
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchCompletedLessons();
-    }
-  }, [user]);
+  const fetchCompletedLessons = useCallback(async () => {
+    if (!user?.id) return;
 
-  useEffect(() => {
-    if (currentLesson) {
-      fetchQuizzes();
-    }
-  }, [currentLesson]);
-
-  const fetchCompletedLessons = async () => {
     try {
-      const response = await fetch(`/api/pretest-status?courseType=${type}&userId=${user?.id}`);
+      const response = await fetch(`/api/pretest-status?courseType=${type}&userId=${user.id}`);
       if (response.ok) {
         const data = await response.json();
         setCompletedLessons(data.completedLessons || []);
@@ -63,9 +53,9 @@ export default function PretestQuizComponent({ type, title }: PretestQuizProps) 
     } catch (error) {
       console.error('Error fetching completed lessons:', error);
     }
-  };
+  }, [type, user?.id, router]);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -83,14 +73,25 @@ export default function PretestQuizComponent({ type, title }: PretestQuizProps) 
     } finally {
       setLoading(false);
     }
-  };
+  }, [type, currentLesson]);
+
+  useEffect(() => {
+    if (user) {
+      fetchCompletedLessons();
+    }
+  }, [user, fetchCompletedLessons]);
+
+  useEffect(() => {
+    if (currentLesson) {
+      fetchQuizzes();
+    }
+  }, [currentLesson, fetchQuizzes]);
 
   const handleChange = (questionIndex: number, value: string) => {
     setAnswers(prev => ({ ...prev, [questionIndex]: value }));
   };
 
   const calculateScore = () => {
-    let correctCount = 0;
     let totalScore = 0;
 
     quizzes.forEach((quiz, index) => {
@@ -98,7 +99,6 @@ export default function PretestQuizComponent({ type, title }: PretestQuizProps) 
       const correctAnswer = quiz.choices[parseInt(quiz.correct) - 1];
       
       if (userAnswer === correctAnswer) {
-        correctCount++;
         totalScore += parseInt(quiz.score);
       }
     });

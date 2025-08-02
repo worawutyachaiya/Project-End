@@ -26,7 +26,7 @@ const Login = () => {
     if (user) {
       router.push(user.role === 'admin' ? '/admin/quiz' : '/')
     }
-  }, [user])
+  }, [user, router])
 
   const particles = useMemo(() => {
     return Array.from({ length: 40 }).map(() => ({

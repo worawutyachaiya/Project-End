@@ -4,6 +4,27 @@ import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 
+interface FormData {
+  firstName: string;
+  lastName: string;
+  studentId: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  academicYear: number;
+}
+
+interface InputFieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isLoading: boolean;
+  minLength?: number;
+  placeholder?: string;
+}
+
 const Register = () => {
   const router = useRouter()
   const { login, user } = useAuth()
@@ -13,7 +34,7 @@ const Register = () => {
   const currentYearBE = currentYearAD + 543 // Convert to Buddhist Era
   const academicYears = [currentYearBE - 1, currentYearBE, currentYearBE + 1]
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     firstName: '',
     lastName: '',
     studentId: '',
@@ -35,7 +56,7 @@ const Register = () => {
     if (user) {
       router.push(user.role === 'admin' ? '/admin/quiz' : '/')
     }
-  }, [user])
+  }, [user, router])
 
   const particles = useMemo(() => {
     return Array.from({ length: 40 }).map(() => ({
@@ -46,7 +67,7 @@ const Register = () => {
     }))
   }, [])
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setForm({ ...form, [name]: name === 'academicYear' ? parseInt(value) : value })
     setError('')
@@ -54,7 +75,7 @@ const Register = () => {
 
   // เพิ่ม debug ในหน้า register - ใส่ในฟังก์ชัน handleSubmit
 
-const handleSubmit = async (e: any) => {
+const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault()
   setIsLoading(true)
   setError('')
@@ -347,7 +368,7 @@ const handleSubmit = async (e: any) => {
   )
 }
 
-const InputField = ({ label, name, type = "text", value, onChange, isLoading, minLength, placeholder }: any) => (
+const InputField = ({ label, name, type = "text", value, onChange, isLoading, minLength, placeholder }: InputFieldProps) => (
   <div className="group">
     <label className="block text-sm font-medium text-white/90 mb-2">{label}</label>
     <div className="relative">

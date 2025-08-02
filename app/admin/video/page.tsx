@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import RouteGuard from '@/components/routeGuard';
+import Image from 'next/image';
 
 // Types
 interface Video {
@@ -122,12 +123,15 @@ const VideoPreview = ({ youtubeUrl, title }: { youtubeUrl: string; title: string
           </div>
         ) : (
           <>
-            <img 
+            <Image 
               src={thumbnailUrl} 
               alt={title || 'Video thumbnail'}
+              width={80}
+              height={48}
               className="w-20 h-12 object-cover rounded cursor-pointer hover:opacity-80"
               onClick={() => setShowIframe(true)}
               onError={() => setThumbnailError(true)}
+              unoptimized
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-black bg-opacity-50 rounded-full p-1">
@@ -184,10 +188,6 @@ const isValidYouTubeUrl = (url: string): boolean => {
 
 const getYouTubeThumbnail = (videoId: string): string => {
   return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-};
-
-const getYouTubeEmbedUrl = (videoId: string): string => {
-  return `https://www.youtube.com/embed/${videoId}`;
 };
 
 function AdminVideoContent() {
@@ -610,13 +610,13 @@ function AdminVideoContent() {
                               </div>
                             </td>
                             <td className="border px-2 py-1">
-                              <img 
-                                src={video.image || thumbnailUrl} 
+                              <Image 
+                                src={video.image || thumbnailUrl || '/placeholder.png'} 
                                 alt="รูป" 
+                                width={64}
+                                height={40}
                                 className="w-16 h-10 object-cover mx-auto rounded"
-                                onError={(e) => {
-                                  e.currentTarget.src = '/placeholder.png';
-                                }}
+                                unoptimized
                               />
                             </td>
                             <td className="border px-2 py-1">

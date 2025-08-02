@@ -141,6 +141,7 @@ const ProfilePage = () => {
         setMessage({ type: 'error', text: result.error || 'เกิดข้อผิดพลาด' });
       }
     } catch (error) {
+      console.error('Error updating profile:', error);
       setMessage({ type: 'error', text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
     } finally {
       setIsSubmitting(false);
@@ -191,6 +192,7 @@ const ProfilePage = () => {
         setMessage({ type: 'error', text: result.error || 'เกิดข้อผิดพลาด' });
       }
     } catch (error) {
+      console.error('Error changing password:', error);
       setMessage({ type: 'error', text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
     } finally {
       setIsSubmitting(false);
