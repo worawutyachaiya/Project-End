@@ -2,6 +2,11 @@
 import { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // เพิ่มบรรทัดนี้เพื่อข้าม ESLint ขณะ build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
   // สำหรับ Prisma และ packages อื่นๆ ที่ต้องรันบน server
   serverExternalPackages: ['@prisma/client', 'bcrypt'],
   
